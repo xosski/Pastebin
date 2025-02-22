@@ -1,0 +1,85 @@
+const Tesseract = require('tesseract.js');
+const fs = require('fs');
+
+// Simulated compliance check function
+function checkCompliance(question) {
+  const allowedCategories = [
+    "general knowledge",
+    "education and learning",
+    "creative writing",
+    "technical assistance (e.g., coding)",
+    "general problem-solving",
+  ];
+
+  const restrictedCategories = [
+    "medical diagnosis or prescriptions",
+    "legal advice or strategies",
+    "hateful or harmful content",
+    "explicit or adult content",
+    "illegal activities",
+    "misinformation or manipulation",
+    "copyright violations",
+  ];
+
+  const restrictedKeywords = [
+    "harm",
+    "illegal",
+    "violence",
+    "explicit",
+    "prescribe",
+    "scam",
+    "fraud",
+    "copyright",
+    "misinform",
+  ];
+
+  for (let keyword of restrictedKeywords) {
+    if (question.toLowerCase().includes(keyword) && !question.toLowerCase().includes("coding") && !question.toLowerCase().includes("script")) {
+      return { compliance: false, reason: `Contains restricted keyword: '${keyword}'` };
+    }
+  }
+
+  for (let category of restrictedCategories) {
+    if (question.toLowerCase().includes(category)) {
+      return { compliance: false, reason: `Appears related to restricted category: '${category}'` };
+    }
+  }
+
+  return { compliance: true, reason: "The query is within policy guidelines." };
+}
+
+// Function to extract text from image using Tesseract.js
+function extractTextFromImage(imagePath) {
+  return new Promise((resolve, reject) => {
+    Tesseract.recognize(imagePath, 'eng', {
+      logger: (m) => console.log(m), // Optional: shows progress
+    })
+      .then(({ data: { text } }) => {
+        resolve(text);
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+}
+
+// Example usage
+const imagePath = 'path_to_your_image.jpg'; // Replace with your image path
+
+extractTextFromImage(imagePath)
+  .then((text) => {
+    const questionsToEvaluate = text.split('\n'); // Assuming each question is on a new line
+
+    questionsToEvaluate.forEach((question) => {
+      if (question.trim()) {
+        const result = checkCompliance(question);
+        console.log(`Question: ${question}`);
+        console.log(`Compliant: ${result.compliance}`);
+        console.log(`Reason: ${result.reason}`);
+        console.log('-'.repeat(50));
+      }
+    });
+  })
+  .catch((error) => {
+    console.error('Error during text extraction:', error);
+  });
