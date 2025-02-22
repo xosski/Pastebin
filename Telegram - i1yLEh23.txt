@@ -1,0 +1,160 @@
+import random
+import asyncio
+import logging
+import socks
+import json
+from telethon import TelegramClient, errors
+from telethon.tl.functions.messages import GetHistoryRequest
+from telethon.tl.functions.channels import JoinChannelRequest
+
+# הגדרת Log
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# פרטי ה-API
+api_id = '4394862'
+api_hash = 'd71971e3f9a0c0d164893803d97f5091'
+phone_number = '12494295802'
+
+# Proxy settings
+proxy_host = 'ca.smartproxy.com'
+proxy_port = 20000
+proxy_username = 'spe3j0irud'
+proxy_password = 'HttFt8zTI~gt7lf8j3'
+
+# יצירת חיבור ל-Telegram
+client = TelegramClient(
+    '12494295802',
+    api_id,
+    api_hash,
+    proxy=(socks.HTTP, proxy_host, proxy_port, True, proxy_username, proxy_password)
+)
+
+# רשימת קבוצות פתוחות שהסקריפט יפרסם אליהן
+group_ids = []
+
+# פונקציה לקריאת רשימת הקבוצות מתוך קובץ JSON
+def load_groups_from_json():
+    with open('groups.json', 'r') as file:
+        return json.load(file).get("groups", [])
+
+# פונקציה לשמירת האינדקס הנוכחי בקובץ JSON
+def save_current_index(index):
+    with open('group_index.json', 'w') as file:
+        json.dump({"current_index": index}, file)
+
+# פונקציה לטעינת האינדקס הנוכחי מקובץ JSON
+def load_current_index():
+    try:
+        with open('group_index.json', 'r') as file:
+            return json.load(file).get("current_index", 0)
+    except FileNotFoundError:
+        return 0
+
+# פונקציה לשליפת קבוצות פתוחות שאינן בארכיון
+async def get_open_groups():
+    global group_ids
+    async for dialog in client.iter_dialogs():
+        if dialog.is_group and not dialog.archived:  # התעלמות מקבוצות בארכיון
+            entity = dialog.entity
+            if hasattr(entity, 'megagroup') and entity.megagroup:
+                if dialog.id not in group_ids:
+                    group_ids.append(dialog.id)
+    print(f"נמצאו {len(group_ids)} קבוצות פתוחות שאינן בארכיון.")
+
+# פונקציה לשליפת שתי ההודעות האחרונות מההודעות השמורות
+async def get_last_two_saved_messages():
+    me = await client.get_me()
+    result = await client(GetHistoryRequest(
+        peer=me.id,
+        limit=2,  # שינוי ל-2 כדי לקבל שתי הודעות אחרונות
+        offset_date=None,
+        offset_id=0,
+        max_id=0,
+        min_id=0,
+        add_offset=0,
+        hash=0
+    ))
+    messages = result.messages if result.messages else []
+    print(f"הודעות שמורות שנמצאו: {len(messages)}")
+    return messages
+
+# פונקציה להעברת הודעות לכל הקבוצות עם עיכובים בין מחזורים
+async def forward_to_all_groups():
+    saved_messages = await get_last_two_saved_messages()
+    last_group_index = 0
+    groups_to_remove = []
+
+    while True:
+        if group_ids and saved_messages:
+            for i in range(last_group_index, len(group_ids)):
+                group_id = group_ids[i]
+                try:
+                    # שליחת כל הודעה מההודעות השמורות
+                    for message in saved_messages:
+                        await client.forward_messages(group_id, message.id, message.peer_id)
+                        print(f"הודעה הועברה לקבוצה {group_id}")
+                        await asyncio.sleep(random.uniform(2, 6))  # עיכוב בין הודעות
+
+                except errors.FloodWaitError as e:
+                    print(f"FloodWait: המתנה של {e.seconds} שניות עקב מגבלת Telegram.")
+                    last_group_index = i
+                    await asyncio.sleep(e.seconds)
+
+                except errors.ChatWriteForbiddenError:
+                    print(f"לא ניתן לשלוח הודעות בקבוצה {group_id}. הוספה לרשימת ההסרה.")
+                    groups_to_remove.append(group_id)
+
+                except Exception as e:
+                    print(f"שגיאה כללית בהעברת הודעה לקבוצה {group_id}: {e}")
+
+            # עדכון רשימת הקבוצות לאחר הסבב
+            last_group_index = 0
+            for group_id in groups_to_remove:
+                if group_id in group_ids:
+                    group_ids.remove(group_id)
+            groups_to_remove.clear()
+            
+            print("סבב הושלם. המתנה של 10 עד 15 דקות לפני הסבב הבא.")
+            await asyncio.sleep(random.uniform(600, 900))  # המתנה בין סבבים (10 עד 15 דקות)
+            await Join_Groups()
+
+async def Join_Groups():
+    groups = load_groups_from_json()
+    current_index = load_current_index()
+
+    # קבלת 5 קבוצות להתחברות בסבב הנוכחי
+    groups_to_join = groups[current_index:current_index + 5]
+    
+    for group in groups_to_join:
+        try:
+            await client(JoinChannelRequest(group))
+            logger.info(f"הצטרפת בהצלחה לקבוצה {group}")
+            await asyncio.sleep(random.uniform(6, 12))
+        except errors.FloodWaitError as e:
+            logger.warning(f"FloodWait: המתנה של {e.seconds} שניות עקב מגבלת Telegram.")
+            await asyncio.sleep(e.seconds)
+        except errors.ChatWriteForbiddenError:
+            logger.warning(f"לא ניתן להצטרף לקבוצה {group}.")
+        except Exception as e:
+            logger.error(f"שגיאה כללית בהצטרפות לקבוצה {group}: {e}")
+
+    # עדכון האינדקס לסבב הבא
+    current_index = (current_index + 5) % len(groups)
+    save_current_index(current_index)
+
+    await get_open_groups()
+    await forward_to_all_groups()
+
+    
+# הפעלת הסקריפט לשליחת הודעות לכל הקבוצות עם מחזורים קבועים
+async def main():
+    print("starting client")
+    await client.start(phone=phone_number)
+    print("client started")
+    await Join_Groups()
+
+    
+# הרצת הסקריפט
+with client:
+    client.loop.run_until_complete(main())

@@ -1,0 +1,29 @@
+-- Toggles the infinite jump feature
+_G.infinjump = not _G.infinjump
+
+if _G.infinJumpStarted == nil then
+    _G.infinJumpStarted = true
+
+    -- Notify readiness
+    pcall(function()
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "WeAreDevs Infinite Jump";
+            Text = "The infinite jump exploit is ready!";
+            Duration = 5;
+        })
+    end)
+
+    -- Infinite jump logic
+    local plr = game:GetService("Players").LocalPlayer
+    local m = plr:GetMouse()
+    m.InputBegan:Connect(function(input)
+        if _G.infinjump and input.KeyCode == Enum.KeyCode.Space then
+            local humanoid = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState("Jumping")
+                wait()
+                humanoid:ChangeState("Seated")
+            end
+        end
+    end)
+end

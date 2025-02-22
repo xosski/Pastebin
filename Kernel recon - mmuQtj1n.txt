@@ -1,0 +1,225 @@
+#include <linux/atomic.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include <linux/fs.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/uaccess.h>
+#include <linux/utsname.h>
+#include <linux/sysinfo.h>
+#include <linux/sched.h>
+#include <linux/slab.h>
+#include <linux/string.h>
+
+#define DEVICE_NAME "kfetch"
+#define BUFFER_SIZE 1024
+
+enum {
+    UNUSED = 0,
+    EXCLUSIVE_OPEN = 1,
+};
+
+/* Feature masks */
+#define KFETCH_RELEASE 0x01
+#define KFETCH_CPU_MODEL 0x02
+#define KFETCH_NUM_CPUS 0x04
+#define KFETCH_MEM 0x08
+#define KFETCH_NUM_PROCS 0x10
+#define KFETCH_UPTIME 0x20
+
+static int device_open(struct inode *, struct file *);
+static int device_release(struct inode *, struct file *);
+static ssize_t device_read(struct file *, char __user *, size_t, loff_t *);
+static ssize_t device_write(struct file *, const char __user *, size_t, loff_t *);
+
+static int major_number;
+static atomic_t is_device_open = ATOMIC_INIT(UNUSED);
+static char message[BUFFER_SIZE];
+static struct class *device_class;
+
+/* File operations structure */
+static struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .read = device_read,
+    .write = device_write,
+    .open = device_open,
+    .release = device_release,
+};
+
+static int __init kfetch_init(void)
+{
+    major_number = register_chrdev(0, DEVICE_NAME, &fops);
+    if (major_number < 0) {
+        pr_err("Failed to register character device\n");
+        return major_number;
+    }
+
+    device_class = class_create(THIS_MODULE, DEVICE_NAME);
+    if (IS_ERR(device_class)) {
+        unregister_chrdev(major_number, DEVICE_NAME);
+        pr_err("Failed to create device class\n");
+        return PTR_ERR(device_class);
+    }
+
+    if (IS_ERR(device_create(device_class, NULL, MKDEV(major_number, 0), NULL, DEVICE_NAME))) {
+        class_destroy(device_class);
+        unregister_chrdev(major_number, DEVICE_NAME);
+        pr_err("Failed to create device\n");
+        return -1;
+    }
+
+    pr_info("Device created at /dev/%s\n", DEVICE_NAME);
+    return 0;
+}
+
+static void __exit kfetch_exit(void)
+{
+    if (device_class) {
+        device_destroy(device_class, MKDEV(major_number, 0));
+        class_destroy(device_class);
+    }
+
+    if (major_number >= 0) {
+        unregister_chrdev(major_number, DEVICE_NAME);
+    }
+
+    pr_info("Device unregistered and resources freed\n");
+}
+
+static void fetch_kernel_info(char *buffer)
+{
+    struct new_utsname *uts = utsname();
+    snprintf(buffer + strlen(buffer), BUFFER_SIZE - strlen(buffer), "Kernel:\t%s\n", uts->release);
+}
+
+static void fetch_cpu_model(char *buffer)
+{
+    struct file *file;
+    char line[128];
+    mm_segment_t old_fs;
+    char *model_name = NULL;
+
+    old_fs = get_fs();
+    set_fs(KERNEL_DS);
+
+    file = filp_open("/proc/cpuinfo", O_RDONLY, 0);
+    if (IS_ERR(file)) {
+        set_fs(old_fs);
+        return;
+    }
+
+    while (kernel_read(file, line, sizeof(line) - 1, &file->f_pos) > 0) {
+        line[sizeof(line) - 1] = '\0';
+        if (strstr(line, "model name")) {
+            model_name = strchr(line, ':');
+            if (model_name) {
+                snprintf(buffer + strlen(buffer), BUFFER_SIZE - strlen(buffer), "CPU:\t%s\n", model_name + 2);
+            }
+            break;
+        }
+    }
+
+    filp_close(file, NULL);
+    set_fs(old_fs);
+}
+
+static void fetch_cpu_count(char *buffer)
+{
+    int cpu_count = num_online_cpus();
+    snprintf(buffer + strlen(buffer), BUFFER_SIZE - strlen(buffer), "CPUs:\t%d\n", cpu_count);
+}
+
+static void fetch_memory_info(char *buffer)
+{
+    struct sysinfo si;
+    si_meminfo(&si);
+    unsigned long total_mem = si.totalram >> 10;
+    unsigned long free_mem = si.freeram >> 10;
+    snprintf(buffer + strlen(buffer), BUFFER_SIZE - strlen(buffer), "Memory:\t%lu MB / %lu MB\n", free_mem, total_mem);
+}
+
+static void fetch_process_count(char *buffer)
+{
+    int proc_count = 0;
+    struct task_struct *task;
+
+    for_each_process(task)
+        proc_count++;
+
+    snprintf(buffer + strlen(buffer), BUFFER_SIZE - strlen(buffer), "Processes:\t%d\n", proc_count);
+}
+
+static void fetch_uptime(char *buffer)
+{
+    struct sysinfo si;
+    si_meminfo(&si);
+    do_sysinfo(&si);
+    unsigned long uptime_minutes = si.uptime / 60;
+    snprintf(buffer + strlen(buffer), BUFFER_SIZE - strlen(buffer), "Uptime:\t%lu mins\n", uptime_minutes);
+}
+
+static int device_open(struct inode *inode, struct file *file)
+{
+    if (atomic_cmpxchg(&is_device_open, UNUSED, EXCLUSIVE_OPEN))
+        return -EBUSY;
+
+    try_module_get(THIS_MODULE);
+    return 0;
+}
+
+static int device_release(struct inode *inode, struct file *file)
+{
+    atomic_set(&is_device_open, UNUSED);
+    module_put(THIS_MODULE);
+    return 0;
+}
+
+static ssize_t device_read(struct file *filp, char __user *buffer, size_t len, loff_t *offset)
+{
+    size_t msg_len = strlen(message);
+    size_t remaining = msg_len - *offset;
+
+    if (remaining == 0)
+        return 0;
+
+    if (len > remaining)
+        len = remaining;
+
+    if (copy_to_user(buffer, message + *offset, len))
+        return -EFAULT;
+
+    *offset += len;
+    return len;
+}
+
+static ssize_t device_write(struct file *filp, const char __user *buffer, size_t len, loff_t *offset)
+{
+    int feature_mask;
+
+    if (len != sizeof(int))
+        return -EINVAL;
+
+    if (copy_from_user(&feature_mask, buffer, sizeof(int)))
+        return -EFAULT;
+
+    memset(message, 0, BUFFER_SIZE);
+
+    if (feature_mask & KFETCH_RELEASE)
+        fetch_kernel_info(message);
+    if (feature_mask & KFETCH_CPU_MODEL)
+        fetch_cpu_model(message);
+    if (feature_mask & KFETCH_NUM_CPUS)
+        fetch_cpu_count(message);
+    if (feature_mask & KFETCH_MEM)
+        fetch_memory_info(message);
+    if (feature_mask & KFETCH_NUM_PROCS)
+        fetch_process_count(message);
+    if (feature_mask & KFETCH_UPTIME)
+        fetch_uptime(message);
+
+    return len;
+}
+
+module_init(kfetch_init);
+module_exit(kfetch_exit);

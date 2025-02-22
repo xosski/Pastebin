@@ -1,0 +1,185 @@
+{
+  "token": "YOUR_DISCORD_BOT_TOKEN",
+  "api_url": "https://safeguard.lol/api/",
+  "admin_token": "YOUR_ADMIN_TOKEN",
+  "staff_channel_id": 123456789012345678,
+  "allowed_roles": {
+    "Lifetime Client": 30,
+    "GHOSTY": 60
+  }
+}
+
+import discord
+from discord import app_commands
+from discord.ext import commands, tasks
+import aiosqlite
+import aiohttp
+import logging
+from datetime import datetime, timedelta
+import json
+
+# Load configuration
+with open("config.json", "r") as config_file:
+    config = json.load(config_file)
+
+TOKEN = config["token"]
+API_URL = config["api_url"]
+ADMIN_TOKEN = config["admin_token"]
+STAFF_CHANNEL_ID = config["staff_channel_id"]
+ALLOWED_ROLES = config["allowed_roles"]
+
+# Initialize bot
+intents = discord.Intents.default()
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# Logger setup
+logging.basicConfig(
+    filename="bot.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+
+def log(log_type, message):
+    log_colors = {
+        "INFO": "\033[94m[INFO]\033[0m",
+        "SUCCESS": "\033[92m[SUCCESS]\033[0m",
+        "ERROR": "\033[91m[ERROR]\033[0m",
+        "WARNING": "\033[93m[WARNING]\033[0m",
+    }
+    print(f"{log_colors.get(log_type, '[LOG]')} {datetime.now()} - {message}")
+    logging.info(f"{log_type}: {message}")
+
+# Database setup
+async def setup_database():
+    async with aiosqlite.connect("hwid_resets.db") as db:
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS hwid_resets (
+                discord_id TEXT PRIMARY KEY,
+                key TEXT,
+                last_reset TIMESTAMP,
+                first_reset TIMESTAMP,
+                total_resets INTEGER DEFAULT 0
+            )
+        """)
+        await db.commit()
+        log("INFO", "Database setup completed.")
+
+# Update bot status
+@tasks.loop(seconds=30)
+async def update_activity():
+    await bot.change_presence(
+        activity=discord.Streaming(
+            name="Reset HWID Bot | /hwid {key}", url="https://twitch.tv/example"
+        )
+    )
+
+# HWID reset via API
+async def reset_hwid_via_api(key):
+    async with aiohttp.ClientSession() as session:
+        headers = {"Content-Type": "application/json", "X-API-Key": ADMIN_TOKEN}
+        payload = {"type": "admin_command", "command": "reset_hwid", "hwid": key}
+
+        try:
+            async with session.post(API_URL, headers=headers, json=payload) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    return {"status": "error", "message": f"HTTP {response.status}"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+# Slash command: Reset HWID
+@bot.tree.command(name="hwid", description="Reset your HWID key.")
+@app_commands.describe(key="Your HWID key.")
+async def hwid(interaction: discord.Interaction, key: str):
+    # Check user roles
+    user_roles = [role.name for role in interaction.user.roles]
+    valid_role = None
+    for role, cooldown_minutes in ALLOWED_ROLES.items():
+        if role in user_roles:
+            valid_role = role
+            cooldown = timedelta(minutes=cooldown_minutes)
+            break
+
+    if not valid_role:
+        await interaction.response.send_message(
+            "❌ You do not have the required role to use this command.", ephemeral=True
+        )
+        log("WARNING", f"{interaction.user} attempted to use /hwid without valid roles.")
+        return
+
+    # Database operations
+    async with aiosqlite.connect("hwid_resets.db") as db:
+        async with db.execute(
+            "SELECT last_reset, total_resets, first_reset FROM hwid_resets WHERE discord_id = ?",
+            (str(interaction.user.id),),
+        ) as cursor:
+            result = await cursor.fetchone()
+
+        if result:
+            last_reset, total_resets, first_reset = result
+            last_reset = datetime.fromisoformat(last_reset)
+            if datetime.now() - last_reset < cooldown:
+                remaining = last_reset + cooldown - datetime.now()
+                await interaction.response.send_message(
+                    f"⏳ You can reset your HWID in {remaining.seconds // 60} minutes and {remaining.seconds % 60} seconds.",
+                    ephemeral=True,
+                )
+                log("WARNING", f"{interaction.user} attempted a reset during cooldown.")
+                return
+        else:
+            total_resets, first_reset = 0, None
+
+        # HWID reset API
+        response = await reset_hwid_via_api(key)
+        if response.get("status") == "success":
+            now = datetime.now()
+            if not result:
+                first_reset = now
+
+            await db.execute(
+                """
+                INSERT OR REPLACE INTO hwid_resets (discord_id, key, last_reset, first_reset, total_resets)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    str(interaction.user.id),
+                    key,
+                    now.isoformat(),
+                    first_reset.isoformat() if first_reset else None,
+                    total_resets + 1,
+                ),
+            )
+            await db.commit()
+
+            # Notify user and staff
+            await interaction.response.send_message("✅ HWID reset successful!", ephemeral=True)
+            log("SUCCESS", f"{interaction.user} reset HWID {key} successfully.")
+            staff_channel = bot.get_channel(STAFF_CHANNEL_ID)
+            embed = discord.Embed(
+                title="🔧 HWID Reset Log",
+                color=discord.Color.green(),
+                timestamp=datetime.utcnow(),
+            )
+            embed.add_field(name="User", value=f"{interaction.user.mention}", inline=False)
+            embed.add_field(name="HWID Key", value=f"`{key}`", inline=False)
+            embed.add_field(name="Total Resets", value=str(total_resets + 1), inline=False)
+            await staff_channel.send(embed=embed)
+        else:
+            error_message = response.get("message", "Unknown error.")
+            await interaction.response.send_message(
+                f"❌ Failed to reset HWID: {error_message}", ephemeral=True
+            )
+            log("ERROR", f"HWID reset failed for {interaction.user} - {error_message}")
+
+# Event: Bot Ready
+@bot.event
+async def on_ready():
+    log("SUCCESS", f"Logged in as {bot.user}")
+    await setup_database()
+    update_activity.start()
+    await bot.tree.sync()
+    log("INFO", "Slash commands synced with Discord.")
+
+# Start the bot
+bot.run(TOKEN)

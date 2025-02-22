@@ -1,0 +1,119 @@
+import os
+import time
+import csv
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+def main():
+    # Chemin vers ChromeDriver
+    chromedriver_path = r"D:\Scolarité\Droit\M1\RECHERCHE\DSA TRANSPARENCY\ROUMANIE\tiktokscrap\chromedriver.exe"  # Remplacez par le chemin exact
+
+    # Options pour Chrome
+    options = ChromeOptions()
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+    # Supprimez "--headless" pour voir le navigateur
+    # options.add_argument("--headless")
+
+    # Initialisation du WebDriver avec Service
+    service = Service(chromedriver_path)
+    driver = webdriver.Chrome(service=service, options=options)
+
+    # Fichier CSV pour enregistrer les données
+    output_file = "tiktok_video_data.csv"
+    if not os.path.exists(output_file):
+        with open(output_file, mode="w", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            writer.writerow(["Video Link", "Views", "Likes", "Comments", "Bookmarks", "Date"])
+
+    try:
+        # Accéder au compte TikTok spécifique
+        account_url = "https://www.tiktok.com/@calingeorgescuoficial"
+        print(f"Navigating to TikTok account: {account_url}")
+        driver.get(account_url)
+
+        # Attendre que la page charge
+        print("Waiting for page to load...")
+        WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "tiktok-1dykci5-DivWrapper")]')))
+        
+        # Scrolling pour charger toutes les vidéos
+        print("Scrolling to ensure all videos load...")
+        scroll_pause_time = 2
+        last_height = driver.execute_script("return document.body.scrollHeight")
+
+        while True:
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(scroll_pause_time)
+            new_height = driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
+
+        # Scrolling vers le haut après avoir chargé toutes les vidéos
+        print("Scrolling back to the top...")
+        driver.execute_script("window.scrollTo(0, 0);")
+        time.sleep(2)
+
+        # Collecter les vidéos
+        video_containers = driver.find_elements(By.XPATH, '//div[contains(@class, "tiktok-1dykci5-DivWrapper")]//a[@href and contains(@class, "tiktok-1ghj7dv-AVideoContainer")]')
+
+        if video_containers:
+            for video_element in video_containers:
+                try:
+                    # Faire défiler jusqu'à l'élément
+                    ActionChains(driver).move_to_element(video_element).perform()
+                    time.sleep(2)
+
+                    # Collecter le lien de la vidéo
+                    video_link = video_element.get_attribute("href")
+                    print(f"Video Link: {video_link}")
+
+                    # Cliquer sur la vidéo pour ouvrir la page de détails
+                    video_element.click()
+                    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "video")))
+
+                    # Mettre la vidéo en pause
+                    video_tag = driver.find_element(By.TAG_NAME, "video")
+                    video_tag.click()
+                    time.sleep(1)
+
+                    # Collecter les autres données
+                    like_xpath = '//strong[@data-e2e="browse-like-count"]'
+                    comment_xpath = '//strong[@data-e2e="browse-comment-count"]'
+                    bookmark_xpath = '//strong[@data-e2e="undefined-count"]'
+                    date_xpath = '//span[@data-e2e="browser-nickname"]/span[last()]'
+
+                    like_count = driver.find_element(By.XPATH, like_xpath).text
+                    comment_count = driver.find_element(By.XPATH, comment_xpath).text
+                    bookmark_count = driver.find_element(By.XPATH, bookmark_xpath).text
+                    date = driver.find_element(By.XPATH, date_xpath).text
+
+                    # Sauvegarder les données dans le fichier CSV
+                    with open(output_file, mode="a", newline="", encoding="utf-8") as file:
+                        writer = csv.writer(file)
+                        writer.writerow([video_link, "", like_count, comment_count, bookmark_count, date])
+
+                    print("Data saved to CSV.")
+                    driver.back()
+                    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "tiktok-1dykci5-DivWrapper")]')))
+
+                except Exception as e:
+                    print(f"Error processing video: {e}")
+        else:
+            print("No videos found on the page.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    finally:
+        # Fermer le navigateur
+        driver.quit()
+        print("Browser closed.")
+
+if __name__ == "__main__":
+    main()

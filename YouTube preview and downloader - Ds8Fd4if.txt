@@ -1,0 +1,230 @@
+import tkinter as tk
+from tkinter import ttk, filedialog
+from pathlib import Path
+from PIL import Image, ImageTk
+import urllib.request
+import io
+import yt_dlp
+import re
+import os
+import time
+import threading
+
+class YouTubeGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("YouTube Downloader")
+
+        # Main frames setup
+        url_frame = ttk.LabelFrame(root, text="Link", padding="5")
+        url_frame.pack(fill="x", padx=5, pady=5)
+
+        self.url_entry = ttk.Entry(url_frame)
+        self.url_entry.pack(fill="x", padx=5, pady=5)
+        self.url_entry.bind('<KeyRelease>', self.on_url_change)
+        self.url_entry.bind('<<Paste>>', lambda e: self.root.after(10, self.update_thumbnail))
+
+        self.thumbnail_label = ttk.Label(url_frame)
+        self.thumbnail_label.pack(pady=5)
+
+        # Options setup
+        options_frame = ttk.LabelFrame(root, text="Options", padding="5")
+        options_frame.pack(fill="x", padx=5, pady=5)
+
+        ttk.Label(options_frame, text="Type:").pack(anchor="w")
+        self.type_var = tk.StringVar(value="Single Video")
+        type_combo = ttk.Combobox(options_frame, textvariable=self.type_var)
+        type_combo['values'] = ['Single Video', 'Playlist']
+        type_combo.pack(fill="x", padx=5, pady=5)
+
+        ttk.Label(options_frame, text="Quality:").pack(anchor="w")
+        self.format_var = tk.StringVar(value="Highest")
+        format_combo = ttk.Combobox(options_frame, textvariable=self.format_var)
+        format_combo['values'] = ['Highest', '1080p', '720p', '480p', '360p', 'Audio Only']
+        format_combo.pack(fill="x", padx=5, pady=5)
+
+        ttk.Label(options_frame, text="Save Location:").pack(anchor="w")
+        self.output_frame = ttk.Frame(options_frame)
+        self.output_frame.pack(fill="x", padx=5, pady=5)
+
+        self.output_var = tk.StringVar(value=str(Path.home() / "Downloads"))
+        self.output_entry = ttk.Entry(self.output_frame, textvariable=self.output_var)
+        self.output_entry.pack(side="left", fill="x", expand=True)
+
+        self.browse_btn = ttk.Button(self.output_frame, text="Browse", command=self.browse_output)
+        self.browse_btn.pack(side="right", padx=5)
+
+        # Download button and progress
+        self.download_btn = ttk.Button(root, text="Download", command=self.download)
+        self.download_btn.pack(fill="x", padx=5, pady=5)
+
+        self.status_var = tk.StringVar()
+        self.status_label = ttk.Label(root, textvariable=self.status_var, wraplength=350)
+        self.status_label.pack(fill="x", padx=5, pady=5)
+
+        # Progress bar
+        self.progress = ttk.Progressbar(root, mode='determinate')
+        self.progress.pack(fill="x", padx=5, pady=5)
+
+        self.download_start_time = None
+        self.current_filesize = 0
+
+    def on_url_change(self, event):
+        self.update_thumbnail()
+
+    def update_thumbnail(self):
+        url = self.url_entry.get().strip()
+        if not url:
+            return
+        try:
+            video_id = self.extract_video_id(url)
+            if video_id:
+                self.set_thumbnail(video_id)
+        except Exception as e:
+            print(f"Thumbnail error: {e}")
+
+    def set_thumbnail(self, video_id):
+        thumb_url = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+        try:
+            with urllib.request.urlopen(thumb_url) as u:
+                raw_data = u.read()
+            image = Image.open(io.BytesIO(raw_data))
+            image.thumbnail((320, 180))
+            photo = ImageTk.PhotoImage(image)
+            self.thumbnail_label.configure(image=photo)
+            self.thumbnail_label.image = photo
+        except Exception as e:
+            print(f"Thumbnail load error: {e}")
+
+    def extract_video_id(self, url):
+        youtube_regex = r'(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})'
+        match = re.search(youtube_regex, url)
+        return match.group(1) if match else None
+
+    def browse_output(self):
+        directory = filedialog.askdirectory(initialdir=self.output_var.get())
+        if directory:
+            self.output_var.set(directory)
+
+    def get_format_string(self, quality):
+        format_map = {
+            'Highest': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            '1080p': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best',
+            '720p': 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best',
+            '480p': 'bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best',
+            '360p': 'bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360][ext=mp4]/best',
+        }
+        return format_map.get(quality, 'best')
+
+    def format_size(self, bytes):
+        try:
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if bytes < 1024:
+                    return f"{bytes:.2f} {unit}"
+                bytes /= 1024
+            return f"{bytes:.2f} TB"
+        except Exception as e:
+            return "Error in size format"
+
+    def format_time(self, seconds):
+        try:
+            if seconds < 60:
+                return f"{seconds:.0f}s"
+            minutes, seconds = divmod(seconds, 60)
+            if minutes < 60:
+                return f"{minutes:.0f}m {seconds:.0f}s"
+            hours, minutes = divmod(minutes, 60)
+            return f"{hours:.0f}h {minutes:.0f}m {seconds:.0f}s"
+        except Exception as e:
+            return "Error in time format"
+
+    def progress_hook(self, d):
+        if d['status'] == 'downloading':
+            try:
+                # Calculate progress percentage
+                downloaded = d.get('downloaded_bytes', 0)
+                total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+
+                if total > 0:
+                    percentage = (downloaded / total) * 100
+                    self.progress['value'] = percentage
+
+                    # Calculate speed and ETA
+                    if not self.download_start_time:
+                        self.download_start_time = time.time()
+                        self.current_filesize = total
+
+                    elapsed_time = time.time() - self.download_start_time
+                    speed = downloaded / elapsed_time
+                    remaining_bytes = total - downloaded
+                    eta = remaining_bytes / speed if speed > 0 else 0
+
+                    # Format status message
+                    status = (f"Downloading... {percentage:.1f}% "
+                              f"({self.format_size(downloaded)}/{self.format_size(total)}) "
+                              f"at {self.format_size(speed)}/s "
+                              f"ETA: {self.format_time(eta)}")
+
+                    self.status_var.set(status)
+            except Exception as e:
+                self.status_var.set("Downloading...")
+            self.root.after(100, self.root.update)
+
+        elif d['status'] == 'finished':
+            self.download_start_time = None
+            self.current_filesize = 0
+            self.progress['value'] = 100
+            self.status_var.set("Download completed!")
+
+    def download(self):
+        url = self.url_entry.get().strip()
+        if not url:
+            self.status_var.set("Please enter a URL")
+            return
+
+        quality = self.format_var.get()
+        output_path = self.output_var.get()
+        is_playlist = self.type_var.get() == "Playlist"
+
+        ydl_opts = {
+            'format': self.get_format_string(quality),
+            'outtmpl': f'{output_path}/%(title)s.%(ext)s',
+            'progress_hooks': [self.progress_hook],
+        }
+
+        if is_playlist:
+            ydl_opts['yes_playlist'] = True
+        else:
+            ydl_opts['noplaylist'] = True
+
+        if quality == 'Audio Only':
+            ydl_opts.update({
+                                'format': 'bestaudio/best',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                }],
+            })
+
+        # Run the download in a separate thread to avoid UI blocking
+        def download_thread():
+            try:
+                self.progress['value'] = 0
+                self.download_start_time = None
+                self.status_var.set("Starting download...")
+                self.root.update()
+
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([url])
+
+            except Exception as e:
+                self.status_var.set(f"Error: {str(e)}")
+                self.progress['value'] = 0
+
+        # Start the download in a new thread
+        threading.Thread(target=download_thread, daemon=True).start()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = YouTubeGUI(root)
+    root.mainloop()

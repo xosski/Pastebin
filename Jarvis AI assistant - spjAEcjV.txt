@@ -1,0 +1,231 @@
+import os
+import subprocess
+import smtplib
+import pyautogui
+import requests
+import json
+import random
+import pywhatkit as pwk
+import psutil
+from pywikihow import search_wikihow
+from win10toast import ToastNotifier
+from time import sleep
+from fuzzywuzzy import process
+import winshell
+import wolframalpha
+import datetime
+import pyttsx3
+import speech_recognition as sr
+import webbrowser
+
+# External Libraries
+import screen_brightness_control as sbc
+
+# Initialize Speech Engine
+class SpeechRecognitionEngine:
+    def __init__(self):
+        self.recognizer = sr.Recognizer()
+        self.microphone = sr.Microphone()
+    
+    def listen(self):
+        with self.microphone as source:
+            self.recognizer.adjust_for_ambient_noise(source)
+            print("Listening...")
+            audio = self.recognizer.listen(source)
+        return audio
+    
+    def recognize_speech(self, audio):
+        try:
+            return self.recognizer.recognize_google(audio).lower()
+        except sr.UnknownValueError:
+            return None
+        except sr.RequestError:
+            return None
+
+# Initialize Text-to-Speech Engine
+class TTSEngine:
+    def __init__(self):
+        self.engine = pyttsx3.init()
+    
+    def speak(self, text):
+        self.engine.say(text)
+        self.engine.runAndWait()
+
+# Initialize the Search Engine for web and media
+class SearchEngine:
+    @staticmethod
+    def perform_search(query):
+        if "google" in query:
+            search_query = query.replace("google", "").strip()
+            webbrowser.open(f"https://www.google.com/search?q={search_query}")
+        elif "youtube" in query:
+            search_query = query.replace("youtube", "").strip()
+            webbrowser.open(f"https://www.youtube.com/results?search_query={search_query}")
+        elif "wikipedia" in query:
+            search_query = query.replace("wikipedia", "").strip()
+            webbrowser.open(f"https://en.wikipedia.org/wiki/{search_query}")
+        else:
+            print("Unknown search query.")
+
+# Manage Resources
+class ResourceManager:
+    def __init__(self):
+        self._wolfram_client = None
+        self._wiki = None
+        self._pywhatkit = None
+    
+    def get_wolfram(self):
+        if not self._wolfram_client:
+            self._wolfram_client = wolframalpha.Client("YOUR_WOLFRAM_API_KEY")
+        return self._wolfram_client
+    
+    def get_wiki(self):
+        if not self._wiki:
+            import wikipedia
+            self._wiki = wikipedia
+        return self._wiki
+    
+    def get_pywhatkit(self):
+        if not self._pywhatkit:
+            self._pywhatkit = pywhatkit
+        return self._pywhatkit
+
+# Email Management
+class EmailManager:
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
+
+    def send_email(self, to, subject, content):
+        try:
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(self.username, self.password)
+            message = f"Subject: {subject}\n\n{content}"
+            server.sendmail(self.username, to, message)
+            server.close()
+            return True
+        except Exception as e:
+            print(f"Error sending email: {e}")
+            return False
+
+# App Launcher
+class AppLauncher:
+    def __init__(self, app_paths):
+        self.app_paths = app_paths
+
+    def launch_app(self, query):
+        query = query.lower()
+        app, location = self.find_app(query)
+        if location:
+            try:
+                subprocess.Popen(location)
+                speak(f"{app} opened successfully.")
+            except FileNotFoundError:
+                speak(f"Sorry, {app} not found.")
+        else:
+            speak(f"Sorry, {query} is not in my list.")
+
+    def find_app(self, query):
+        for app, path in self.app_paths.items():
+            if query == app.lower():
+                return app, path
+        best_match = process.extractOne(query, self.app_paths.keys())
+        if best_match and best_match[1] >= 80:
+            return best_match[0], self.app_paths[best_match[0]]
+        return None, None
+
+# Main logic for interaction
+def main():
+    # Initialize classes
+    tts_engine = TTSEngine()
+    speech_engine = SpeechRecognitionEngine()
+    email_manager = EmailManager('your_email@gmail.com', 'your_app_password')
+    app_paths = {
+        'notepad': 'C:\\Windows\\System32\\notepad.exe',
+        'chrome': 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    }
+    app_launcher = AppLauncher(app_paths)
+    resources = ResourceManager()
+    
+    # Greet the user
+    greet_msg = wish()
+    speak(greet_msg)
+    
+    while True:
+        audio = speech_engine.listen()
+        query = speech_engine.recognize_speech(audio)
+        
+        if query is None:
+            continue
+        
+        print(f"Received: {query}")
+
+        if "open notepad" in query:
+            speak("Opening Notepad")
+            subprocess.Popen("notepad.exe")
+        elif "play music" in query:
+            play_music()
+        elif "weather" in query:
+            weather_report()
+        elif "search" in query:
+            search_engine.perform_search(query)
+        elif "send email" in query:
+            to = 'recipient@example.com'
+            subject = 'Test Email'
+            content = 'This is a test email from the assistant.'
+            email_manager.send_email(to, subject, content)
+            speak(f"Email sent to {to}")
+        elif "shutdown" in query:
+            speak("Shutting down the system.")
+            os.system("shutdown /s /t 1")
+        elif "restart" in query:
+            speak("Restarting the system.")
+            os.system("shutdown /r /t 1")
+        else:
+            speak("Sorry, I didn't understand that.")
+
+# Function to generate the greeting
+def wish():
+    hour = datetime.datetime.now().hour
+    if 0 <= hour < 12:
+        return "Good Morning!"
+    elif 12 <= hour < 18:
+        return "Good Afternoon!"
+    else:
+        return "Good Evening!"
+
+# Function to speak text
+def speak(text):
+    tts_engine.speak(text)
+
+# Function to play music
+def play_music():
+    speak("Playing music to freshen up your mood.")
+    music_dir = "C:\\Users\\Admin\\Music"
+    songs = os.listdir(music_dir)
+    song = random.choice(songs)
+    os.startfile(os.path.join(music_dir, song))
+
+# Function to get weather
+def weather_report():
+    api_key = "YOUR_WEATHER_API_KEY"
+    base_url = "http://api.openweathermap.org/data/2.5/weather?"
+    city_name = input("Enter city name: ")
+    complete_url = f"{base_url}appid={api_key}&q={city_name}"
+    
+    response = requests.get(complete_url)
+    data = response.json()
+    
+    if data["cod"] != "404":
+        main_data = data["main"]
+        current_temperature = main_data["temp"] - 273.15
+        current_humidity = main_data["humidity"]
+        weather_description = data["weather"][0]["description"]
+        
+        speak(f"Temperature: {current_temperature:.2f}°C, Humidity: {current_humidity}%, Weather: {weather_description}")
+    else:
+        speak("City not found.")
+
+if __name__ == '__main__':
+    main()

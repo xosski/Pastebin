@@ -1,0 +1,150 @@
+@echo off
+title Hackertyper
+
+:main
+cls
+color a
+
+set /p kleur="Kleur: "
+
+call :setColor %kleur%
+
+cls
+goto main
+
+:setColor
+if "%1"=="zwart" set kleur=0
+if "%1"=="blauw" set kleur=1
+if "%1"=="groen" set kleur=2
+if "%1"=="aqua" set kleur=3
+if "%1"=="rood" set kleur=4
+if "%1"=="paars" set kleur=5
+if "%1"=="geel" set kleur=6
+if "%1"=="wit" set kleur=7
+if "%1"=="regenboog" call :regenboog
+if "%1"=="special" call :special
+if not defined kleur (
+    echo Invalid color. Please try again.
+    pause
+    goto main
+)
+
+color %kleur%
+
+:matrix
+echo %random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%
+pause > nul
+goto matrix
+
+:regenboog
+cls
+echo Random Rainbow Colors
+:regenLoop
+set /a rand=%random% %% 7 + 1
+color %rand%
+echo %random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%%random%
+pause > nul
+goto regenLoop
+
+:special
+cls
+color 02
+
+echo struct group_info init_groups = { .usage = ATOMIC_INIT(2) };
+pause > nul
+echo.
+echo struct group_info *groups_alloc(int gidsetsize){
+pause > nul
+echo.
+echo     struct group_info *group_info;
+pause > nul
+echo.
+echo     int nblocks;
+pause > nul
+echo.
+echo     int i;
+pause > nul
+echo.
+echo     nblocks = (gidsetsize + NGROUPS_PER_BLOCK - 1) / NGROUPS_PER_BLOCK;
+pause > nul
+echo.
+echo     nblocks = nblocks ? 1 : 1;
+pause > nul
+echo.
+echo     group_info = kmalloc(sizeof(*group_info) + nblocks * sizeof(gid_t *), GFP_USER);
+pause > nul
+echo.
+echo     if (!group_info)
+pause > nul
+echo.
+echo         return NULL;
+pause > nul
+echo.
+echo     group_info->ngroups = gidsetsize;
+pause > nul
+echo.
+echo     group_info->nblocks = nblocks;
+pause > nul
+echo.
+echo     atomic_set(&group_info->usage, 1);
+pause > nul
+echo.
+echo     if (gidsetsize <= NGROUPS_SMALL)
+pause > nul
+echo         group_info->blocks[0] = group_info->small_block;
+pause > nul
+echo     else {
+pause > nul
+echo         for (i = 0; i < nblocks; i++) {
+pause > nul
+echo             gid_t *b;
+pause > nul
+echo             b = (void *)__get_free_page(GFP_USER);
+pause > nul
+echo             if (!b) goto out_undo_partial_alloc;
+pause > nul
+echo             group_info->blocks[i] = b;
+pause > nul
+echo         }
+pause > nul
+echo     }
+pause > nul
+echo     return group_info;
+pause > nul
+echo out_undo_partial_alloc:
+pause > nul
+echo     while (--i >= 0) {
+pause > nul
+echo         free_page((unsigned long)group_info->blocks[i]);
+pause > nul
+echo     }
+pause > nul
+echo     kfree(group_info);
+pause > nul
+echo     return NULL;
+pause > nul
+echo }
+pause > nul
+echo EXPORT_SYMBOL(groups_alloc);
+pause > nul
+echo void groups_free(struct group_info *group_info) {
+pause > nul
+echo     if (group_info->blocks[0] != group_info->small_block) {
+pause > nul
+echo         int i;
+pause > nul
+echo         for (i = 0; i < group_info->nblocks; i++)
+pause > nul
+echo             free_page((unsigned long)group_info->blocks[i]);
+pause > nul
+echo     }
+pause > nul
+echo     kfree(group_info);
+pause > nul
+echo }
+pause > nul
+echo EXPORT_SYMBOL(groups_free);
+pause > nul
+echo Return to main menu? (y/n)
+set /p choice="Choice: "
+if /i "%choice%"=="y" goto main

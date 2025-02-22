@@ -1,0 +1,83 @@
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/printk.h>
+#include <linux/proc_fs.h>
+#include <asm/current.h>
+
+#define procfs_name "Mythread_info"
+#define BUFSIZE  1024
+char buf[BUFSIZE];
+
+static ssize_t Mywrite(struct file *fileptr, const char __user *ubuf, size_t buffer_len, loff_t *offset){
+    /* Do nothing */
+return 0;
+}
+
+static ssize_t Myread(struct file *fileptr, char __user *ubuf, size_t buffer_len, loff_t *offset){
+    int len = 0;
+    struct task_struct *task;
+
+    // 確保內容僅被讀取一次
+    if (*offset > 0){
+        return 0;
+    }
+
+    // 初始化緩衝區
+    memset(buf, 0, BUFSIZE);
+
+    // 取得讀取鎖以安全地遍歷任務列表
+    rcu_read_lock();
+    
+    // 遍歷當前進程的所有執行緒
+    for_each_thread(current->group_leader, task){
+        if(task->tgid == task->pid) continue;
+        // 格式：PID: <PID>, TID: <TID>, Priority: <Priority>, State: <State>
+        len += snprintf(buf + len, BUFSIZE - len, "PID: %d, TID: %d, Priority: %d, State: %ld\n",
+                       task->tgid,      // 執行緒組 ID（主執行緒的 PID）
+                       task->pid,       // 執行緒 ID (TID)
+                       task->prio,      // 優先權
+                       task->stats);    // 狀態
+
+        // 防止緩衝區溢位
+        if (len >= BUFSIZE){
+            break;
+        }
+    }
+    
+    rcu_read_unlock();
+
+    // 檢查緩衝區長度是否超過用戶緩衝區
+    if (len > buffer_len){
+        len = buffer_len;
+    }
+
+    // 將資料複製到用戶空間
+    if (copy_to_user(ubuf, buf, len)){
+        return -EFAULT;
+    }
+
+    // 更新偏移量
+    *offset += len;
+    return len;
+}
+
+static struct proc_ops Myops = {
+    .proc_read = Myread,
+    .proc_write = Mywrite,
+};
+
+static int My_Kernel_Init(void){
+    proc_create(procfs_name, 0644, NULL, &Myops);   
+    pr_info("My kernel says Hi");
+    return 0;
+}
+
+static void My_Kernel_Exit(void){
+    pr_info("My kernel says GOODBYE");
+}
+
+module_init(My_Kernel_Init);
+module_exit(My_Kernel_Exit);
+
+MODULE_LICENSE("GPL");

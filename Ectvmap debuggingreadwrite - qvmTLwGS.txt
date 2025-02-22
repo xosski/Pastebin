@@ -1,0 +1,203 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/proc_fs.h>
+#include <linux/uaccess.h>
+#include <linux/slab.h>
+#include <linux/vmalloc.h>
+#include <linux/mm.h>
+#include <linux/kprobes.h>
+#include <linux/mutex.h>
+
+#define PROC_FILENAME_ECT "ect_region_dump"
+#define PROC_FILENAME_FVMAP "fvmap_region_dump"
+
+static void *v_addr_ect = NULL;
+static unsigned int data_size_ect = 0;
+
+static void *v_addr_fvmap = NULL;
+static unsigned int data_size_fvmap = 0;
+
+static DEFINE_MUTEX(ect_lock);
+static DEFINE_MUTEX(fvmap_lock);
+
+static unsigned long ect_phys_addr = 0x90000000;  // Default ECT physical address
+static unsigned int ect_region_size = 0xc4000;   // Default ECT region size
+
+module_param(ect_phys_addr, ulong, 0444);
+MODULE_PARM_DESC(ect_phys_addr, "Physical address of the ECT region");
+module_param(ect_region_size, uint, 0444);
+MODULE_PARM_DESC(ect_region_size, "Size of the ECT region");
+
+// Function to map physical memory to virtual memory
+static void *map_physical_memory(unsigned long phys_addr, unsigned int size) {
+    int i;
+    unsigned int num_pages = size >> PAGE_SHIFT;
+    pgprot_t prot = pgprot_writecombine(PAGE_KERNEL);
+    struct page **pages = NULL;
+    void *v_addr = NULL;
+
+    if (!phys_addr || size == 0) {
+        pr_err("[henr1kas] Invalid physical address or size\n");
+        return NULL;
+    }
+
+    pages = kmalloc_array(num_pages, sizeof(struct page *), GFP_ATOMIC);
+    if (!pages) {
+        pr_err("[henr1kas] Failed to allocate memory for page array\n");
+        return NULL;
+    }
+
+    for (i = 0; i < num_pages; i++) {
+        pages[i] = phys_to_page(phys_addr);
+        phys_addr += PAGE_SIZE;
+    }
+
+    v_addr = vmap(pages, num_pages, VM_MAP, prot);
+    kfree(pages);
+
+    if (!v_addr)
+        pr_err("[henr1kas] Failed to map physical memory to virtual address\n");
+
+    return v_addr;
+}
+
+// Generic /proc read function
+static ssize_t proc_read_generic(struct file *file, char __user *user_buf, size_t count, loff_t *ppos, void *v_addr, unsigned int data_size, struct mutex *lock) {
+    ssize_t ret;
+
+    if (mutex_lock_interruptible(lock))
+        return -ERESTARTSYS;
+
+    if (!v_addr || data_size == 0) {
+        mutex_unlock(lock);
+        return -ENODATA;
+    }
+
+    if (*ppos >= data_size) {
+        mutex_unlock(lock);
+        return 0; // EOF
+    }
+
+    if (count > (data_size - *ppos))
+        count = data_size - *ppos;
+
+    if (copy_to_user(user_buf, (char *)v_addr + *ppos, count)) {
+        pr_err("[henr1kas] Failed to copy data to user space\n");
+        mutex_unlock(lock);
+        return -EFAULT;
+    }
+
+    *ppos += count;
+    ret = count;
+
+    mutex_unlock(lock);
+    return ret;
+}
+
+// /proc read functions
+static ssize_t proc_read_ect(struct file *file, char __user *user_buf, size_t count, loff_t *ppos) {
+    return proc_read_generic(file, user_buf, count, ppos, v_addr_ect, data_size_ect, &ect_lock);
+}
+
+static ssize_t proc_read_fvmap(struct file *file, char __user *user_buf, size_t count, loff_t *ppos) {
+    return proc_read_generic(file, user_buf, count, ppos, v_addr_fvmap, data_size_fvmap, &fvmap_lock);
+}
+
+// /proc file operations
+static const struct proc_ops proc_fops_ect = {
+    .proc_read = proc_read_ect,
+};
+
+static const struct proc_ops proc_fops_fvmap = {
+    .proc_read = proc_read_fvmap,
+};
+
+// Resolve FVMAP base dynamically using kprobes
+static void *get_fvmap_base(void) {
+    struct kprobe kp = { .symbol_name = "get_fvmap_base" };
+    void *(*func)(void) = NULL;
+    void *fvmap_base = NULL;
+
+    if (register_kprobe(&kp) < 0) {
+        pr_err("[henr1kas] Failed to register kprobe for get_fvmap_base\n");
+        return NULL;
+    }
+
+    func = (void *(*)(void))kp.addr;
+    if (func)
+        fvmap_base = func();
+    else
+        pr_err("[henr1kas] Failed to resolve get_fvmap_base address\n");
+
+    unregister_kprobe(&kp);
+    return fvmap_base;
+}
+
+// Module initialization
+static int __init henr1kas_init(void) {
+    struct proc_dir_entry *entry;
+
+    pr_info("[henr1kas] Kernel module loaded\n");
+
+    // Map ECT region
+    v_addr_ect = map_physical_memory(ect_phys_addr, ect_region_size);
+    if (!v_addr_ect)
+        return -ENOMEM;
+
+    data_size_ect = *(unsigned int *)(v_addr_ect + 8);
+
+    entry = proc_create(PROC_FILENAME_ECT, 0444, NULL, &proc_fops_ect);
+    if (!entry) {
+        pr_err("[henr1kas] Failed to create /proc/%s\n", PROC_FILENAME_ECT);
+        kvfree(v_addr_ect);
+        return -ENOMEM;
+    }
+
+    pr_info("[henr1kas] /proc/%s created, exporting %u bytes\n", PROC_FILENAME_ECT, data_size_ect);
+
+    // Resolve FVMAP base
+    v_addr_fvmap = get_fvmap_base();
+    if (!v_addr_fvmap) {
+        pr_err("[henr1kas] Failed to resolve FVMAP base\n");
+        remove_proc_entry(PROC_FILENAME_ECT, NULL);
+        kvfree(v_addr_ect);
+        return -ENOMEM;
+    }
+
+    data_size_fvmap = 8192;
+
+    entry = proc_create(PROC_FILENAME_FVMAP, 0444, NULL, &proc_fops_fvmap);
+    if (!entry) {
+        pr_err("[henr1kas] Failed to create /proc/%s\n", PROC_FILENAME_FVMAP);
+        kvfree(v_addr_ect);
+        kvfree(v_addr_fvmap);
+        remove_proc_entry(PROC_FILENAME_ECT, NULL);
+        return -ENOMEM;
+    }
+
+    pr_info("[henr1kas] /proc/%s created, exporting %u bytes\n", PROC_FILENAME_FVMAP, data_size_fvmap);
+
+    return 0;
+}
+
+// Module cleanup
+static void __exit henr1kas_exit(void) {
+    remove_proc_entry(PROC_FILENAME_ECT, NULL);
+    remove_proc_entry(PROC_FILENAME_FVMAP, NULL);
+
+    if (v_addr_ect)
+        kvfree(v_addr_ect);
+
+    if (v_addr_fvmap)
+        kvfree(v_addr_fvmap);
+
+    pr_info("[henr1kas] Kernel module unloaded\n");
+}
+
+module_init(henr1kas_init);
+module_exit(henr1kas_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("henr1kas");
+MODULE_DESCRIPTION("Improved ECT and FVMAP memory dumping module");

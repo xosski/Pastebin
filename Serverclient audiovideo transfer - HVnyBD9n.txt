@@ -1,0 +1,110 @@
+import socket
+import os
+import threading
+
+def send_file(client_socket, file_path):
+    """
+    Sends a file to the client with a header indicating file size and type.
+    """
+    try:
+        if not os.path.exists(file_path):
+            print(f"File {file_path} does not exist.")
+            return
+        
+        file_size = os.path.getsize(file_path)
+        filename = os.path.basename(file_path)
+        
+        # Send file header (filename and size)
+        client_socket.send(f"{filename},{file_size}".encode())
+        
+        # Wait for acknowledgment from the client that it's ready
+        ack = client_socket.recv(1024).decode()
+        if ack != "READY":
+            print("Client is not ready to receive file.")
+            return
+        
+        # Send the file in chunks
+        with open(file_path, 'rb') as file:
+            while (chunk := file.read(4096)):
+                client_socket.send(chunk)
+
+        print(f"File {filename} sent successfully.")
+    except IOError as e:
+        print(f"Error during file sending: {e}")
+    finally:
+        client_socket.close()
+
+def handle_client(client_socket, client_address):
+    """
+    Handles communication with the client, sends both audio and video files.
+    """
+    print(f"Connection established with {client_address}")
+    
+    # Send audio file
+    send_file(client_socket, "/home/mungowz/PEPPER/microphones/pepper_audio.wav")
+    
+    # Send video file
+    send_file(client_socket, "/home/mungowz/PEPPER/cameras/pepper_video.avi")
+    
+def start_server(host, port):
+    """
+    Starts the server, listens for client connections and handles them in separate threads.
+    """
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((host, port))
+    server_socket.listen(5)
+    
+    print(f"Server listening on {host}:{port}")
+    
+    while True:
+        client_socket, client_address = server_socket.accept()
+        threading.Thread(target=handle_client, args=(client_socket, client_address)).start()
+
+if __name__ == '__main__':
+    start_server('0.0.0.0', 5000)
+
+—————————————-
+import socket
+import os
+
+def receive_file(client_socket, save_path):
+    """
+    Receives a file from the server, checks the header for file name and size.
+    """
+    try:
+        # Receive file header (filename and size)
+        file_header = client_socket.recv(1024).decode()
+        filename, file_size = file_header.split(',')
+        file_size = int(file_size)
+        
+        # Send acknowledgment to server that we are ready to receive the file
+        client_socket.send("READY".encode())
+        
+        # Receive the file in chunks and write to disk
+        with open(save_path, 'wb') as file:
+            bytes_received = 0
+            while bytes_received < file_size:
+                data = client_socket.recv(4096)
+                file.write(data)
+                bytes_received += len(data)
+        
+        print(f"File received: {filename}")
+    except IOError as e:
+        print(f"Error during file reception: {e}")
+    finally:
+        client_socket.close()
+
+if __name__ == '__main__':
+    host = '127.0.0.1'
+    port = 5000
+    
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((host, port))
+    
+    print(f"Client connected to {host}:{port}")
+    
+    # Receive audio file
+    receive_file(client_socket, "/home/mungowz/pepper_audio_received.wav")
+    
+    # Receive video file
+    receive_file(client_socket, "/home/mungowz/pepper_video_received.avi")

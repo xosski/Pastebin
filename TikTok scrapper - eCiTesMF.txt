@@ -1,0 +1,143 @@
+import os
+import time
+import csv
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+def main():
+    # Path to ChromeDriver
+    chromedriver_path = r"D:\Scolarité\Droit\M1\RECHERCHE\DSA TRANSPARENCY\ROUMANIE\tiktokscrap\chromedriver.exe"
+
+    # Chrome options
+    options = ChromeOptions()
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+    # options.add_argument("--headless")  # Uncomment to run without a GUI
+
+    # Initialize WebDriver with Service
+    service = Service(chromedriver_path)
+    driver = webdriver.Chrome(service=service, options=options)
+
+    # CSV file for saving data
+    output_file = "tiktok_video_data.csv"
+    if not os.path.exists(output_file):
+        with open(output_file, mode="w", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+            writer.writerow(["Video Link", "Views", "Likes", "Comments", "Bookmarks", "Date"])
+
+    try:
+        # Access TikTok account page
+        account_url = "https://www.tiktok.com/@calingeorgescuoficial"
+        print(f"Navigating to TikTok account: {account_url}")
+        driver.get(account_url)
+
+        # Wait for the page to load and potentially solve CAPTCHA manually
+        print("Waiting for you to resolve CAPTCHA (if needed).")
+        WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.TAG_NAME, "body")))  # Wait for body element to load
+
+        # Scroll to load all videos
+        print("Scrolling to ensure all videos load...")
+        scroll_pause_time = 2
+        last_height = driver.execute_script("return document.body.scrollHeight")
+
+        while True:
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(scroll_pause_time)
+            new_height = driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
+
+        # Scroll back to the top
+        print("Scrolling back to the top...")
+        driver.execute_script("window.scrollTo(0, 0);")
+        time.sleep(2)
+
+        # Collect all video elements
+        print("Collecting video elements...")
+        video_containers = driver.find_elements(By.XPATH, '//div[contains(@class, "css-13fa1gi-DivWrapper")]//a[@href and contains(@class, "css-1g95xhm-AVideoContainer")]')
+
+        if not video_containers:
+            print("No videos found on the page.")
+            return
+
+        # Display available videos and ask user for a starting point
+        print("Available videos:")
+        video_links = [video.get_attribute("href") for video in video_containers]
+        for idx, video_link in enumerate(video_links):
+            print(f"{idx + 1}: {video_link}")
+
+        choice = int(input("Enter the number of the video to start from: ")) - 1
+        if choice < 0 or choice >= len(video_links):
+            print("Invalid choice. Exiting.")
+            return
+
+        print(f"Starting from video: {video_links[choice]}")
+
+        # Process the selected video and subsequent ones
+        for video_element in video_containers[choice:]:
+            try:
+                # Scroll to the video
+                ActionChains(driver).move_to_element(video_element).perform()
+                time.sleep(2)
+
+                # Collect video details
+                video_link = video_element.get_attribute("href")
+                print(f"Video Link: {video_link}")
+
+                # Wait for views to be visible
+                views_xpath = './/strong[@data-e2e="video-views" and contains(@class, "video-count")]'
+                video_views_element = WebDriverWait(video_element, 10).until(EC.presence_of_element_located((By.XPATH, views_xpath)))
+                video_views = video_views_element.text
+                print(f"Views: {video_views}")
+
+                # Click the video to get more details
+                video_element.click()
+                time.sleep(2)
+
+                # Pause the video
+                print("Pausing the video...")
+                video_tag = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "video")))
+                video_tag.click()
+                time.sleep(1)
+
+                # Collect likes, comments, bookmarks, and date
+                like_count = driver.find_element(By.XPATH, '//strong[@data-e2e="browse-like-count" and contains(@class, "css-vc3yj-StrongText")]').text
+                comment_count = driver.find_element(By.XPATH, '//strong[@data-e2e="browse-comment-count" and contains(@class, "css-vc3yj-StrongText")]').text
+                bookmark_count = driver.find_element(By.XPATH, '//strong[@data-e2e="undefined-count" and contains(@class, "css-vc3yj-StrongText")]').text
+                date = driver.find_element(By.XPATH, '//span[@data-e2e="browser-nickname"]/span[last()]').text
+
+                print(f"Likes: {like_count}")
+                print(f"Comments: {comment_count}")
+                print(f"Bookmarks: {bookmark_count}")
+                print(f"Date: {date}")
+
+                # Write data to CSV
+                with open(output_file, mode="a", newline="", encoding="utf-8") as file:
+                    writer = csv.writer(file)
+                    writer.writerow([video_link, video_views, like_count, comment_count, bookmark_count, date])
+
+                print("Data saved to CSV.")
+
+                # Return to the previous page
+                driver.execute_script("window.history.go(-1)")
+                time.sleep(2)
+
+            except Exception as e:
+                print(f"Error processing video: {e}")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    finally:
+        # Close the browser
+        driver.quit()
+        print("Browser closed.")
+
+if __name__ == "__main__":
+    main()

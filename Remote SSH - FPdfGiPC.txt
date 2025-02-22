@@ -1,0 +1,148 @@
+https://drive.google.com/drive/folders/1yr1KW0dW22IRi2S_2j74wezWRWHlTjpV?usp=drive_link
+/*<meta />*/
+
+@media print 
+{
+	/* Micro content skin styles */
+
+	.micro-content-truncated-mode .micro-response
+	{
+		overflow: hidden !important;
+	}
+
+	/* Hide Toolbar Topic proxy ans eLearning Toolbar proxy by default */
+
+	.buttons
+	{
+		display: none;
+	}
+
+	/* Menu styles */
+
+	ul.menu
+	{
+		display: none;
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete ul
+	{
+		background-color: #ffffff;
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-item a
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-item
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-content
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-history
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-item.auto-result-selected a
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-item.auto-result-selected
+	{
+		background-color: #ececec;
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-content.auto-result-selected
+	{
+		background-color: #ececec;
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-history.auto-result-selected
+	{
+		background-color: #ececec;
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-item .auto-result-description
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-content .auto-result-description
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-history .auto-result-description
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-item .auto-result-icon
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-content .auto-result-icon
+	{
+		background: transparent url('Images/icon-topic.png') no-repeat center center;
+		-pie-background: transparent url('Skins/Default/Stylesheets/Components/Images/icon-topic.png') no-repeat center center;
+		background-size: contain;
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-history .auto-result-icon
+	{
+		background: transparent url('Images/icon-search.png') no-repeat center center;
+		-pie-background: transparent url('Skins/Default/Stylesheets/Components/Images/icon-search.png') no-repeat center center;
+		background-size: contain;
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-item .auto-result-phrase
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-content .auto-result-phrase
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-history .auto-result-phrase
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-item .auto-result-phrase .search-result-highlight
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-content .auto-result-phrase .search-result-highlight
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-history .auto-result-phrase .search-result-highlight
+	{
+		
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li .auto-result-remove
+	{
+		background: transparent url('Images/icon-remove.png') no-repeat center center;
+		-pie-background: transparent url('Skins/Default/Stylesheets/Components/Images/icon-remove.png') no-repeat center center;
+		background-size: contain;
+	}
+
+	._Skins__IMP_TopNav_TopicsSearchBar.mc-component .search-auto-complete li.auto-result-item .auto-result-separator
+	{
+		
+	}
+
+	.search-bar._Skins__IMP_TopNav_TopicsSearchBar.mc-component

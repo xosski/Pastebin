@@ -1,0 +1,654 @@
+function LoginApp() {
+
+  /* ----------------------------------------------------------------------------------------------------------------
+     -------------------------------------------- OBJECT PROPERTIES -------------------------------------------------
+     ---------------------------------------------------------------------------------------------------------------- */
+
+  this.baseUri = sessionStorage.getItem("baseUri");
+  this.debugEnabled = sessionStorage.getItem("debugEnabled") && (sessionStorage.getItem("debugEnabled").toLowerCase() == "true");
+  this.pushPollInterval;
+  this.serverSideBaseUri = sessionStorage.getItem("serverSideBaseUri");
+  
+  this.requestState = document.getElementById("requestState").value;
+  //console.log('loginApp] requestState...: '+ requestState);
+
+  
+  /* ----------------------------------------------------------------------------------------------------------------
+     -------------------------------------------- HELPER METHODS ----------------------------------------------------
+     ---------------------------------------------------------------------------------------------------------------- */
+
+  // Removes the spinner from DOM tree.
+  // Used, for instance, when an error comes and we have to stop spinning.
+  this.removeSpinner = function () {
+    let spinner = document.querySelector("div.loader");
+    if (spinner != null) {
+      spinner.parentNode.removeChild(spinner);
+    }
+  }
+
+  // Removes button and show spinner.
+  // Mainly used on form submission, where submit button is swapped by spinner.
+  this.removeBtnAndShowSpinner = function (btn) {
+    btn.style.display = 'none';
+    var spinnerDiv = document.createElement('div');
+    spinnerDiv.classList.add('loader');
+    spinnerDiv.data_res = 'loading-msg';
+    spinnerDiv.innerHTML = 'Loading...';
+    // Showing the spinner after btn
+    btn.parentNode.insertBefore(spinnerDiv, btn.nextSibling);
+  }
+
+  // Keeps polling for push notifications at the specified interval.
+  this.submitPushPoll = function (timeInMillis) {
+    const self = this;
+    this.logMsg('submitPushPoll');
+    this.pushPollInterval = setInterval(function () {
+      self.logMsg('timer');
+      let signinTr = document.getElementById("signin-tr");
+      if ((signinTr) &&
+        (signinTr.whichFactorForm === "PUSH")) {
+        self.logMsg(signinTr.whichFactorForm + " is active");
+
+        // Issue #1 fix. Change introduced to channel the call to submitPushPoll through buildPayload for adding credentials
+        const payload = self.buildPayload("submitPushPoll", signinTr);
+        self.logMsg("Invoking submitPushPoll with payload " + self.mask(payload));
+        self.sdk.submitPushPoll(payload);
+        // End of fix.
+      }
+    }, timeInMillis);
+  }
+
+  // Stops polling for push notifications
+  this.stopPushPoll = function () {
+    if (this.pushPollInterval != null) {
+      this.removeSpinner();
+      this.logMsg('Stopping push poll...');
+      clearInterval(this.pushPollInterval);
+    }
+  }
+
+  this.showReinputUserName = function (formDiv, obj, timeInMilis) {
+    if (formDiv && formDiv.whichForm != null && formDiv.whichForm === "FORGOT_PASSWORD_FORM") {
+      var usernameLocal = formDiv.querySelector("#forgotUserName").value;
+
+      let didNotGetMsg = this.localizeMsg('forgot-pw-incorrect-username-msg', 'Incorrect UserName?');
+      let resendMsg = this.localizeMsg('forgot-pw-incorrect-username-btn', 'Fix UserName');
+
+      setTimeout(function () {
+        formDiv.appendChild(document.createElement('hr'));
+
+        var resendDivElem = document.createElement('div');
+        resendDivElem.classList.add('sameline');
+        resendDivElem.innerHTML = '<span class="info">' + didNotGetMsg + '</span>&nbsp;' +
+          '<a href="#" id="resend-username-btn">' + resendMsg + '</a>';
+
+        // Adding the Resend Option preferably right after the submit button.
+        let submitBtnElem = formDiv.querySelector("#submit-btn");
+        if (submitBtnElem) {
+          submitBtnElem.parentNode.insertBefore(resendDivElem, submitBtnElem.nextSibling);
+        }
+        else {
+          formDiv.appendChild(resendDivElem);
+        }
+
+        formDiv.querySelector("#resend-username-btn").onclick = function () {
+          obj.displayForgotPassWordForm();
+
+        };
+      }, timeInMilis);
+    }
+  }
+
+  // Localizes all labels inside formDiv
+  this.localize = function (formDiv) {
+    if (resources) {
+      var resElms = formDiv.querySelectorAll('[data-res]');
+      for (var n = 0; n < resElms.length; n++) {
+        var elem = resElms[n];
+        var resKey = elem.getAttribute('data-res');
+        if (resKey) {
+          if (resources[resKey]) {
+            elem.innerHTML = resources[resKey];
+          }
+          else {
+            this.logWarning("Translation missing for resource key '" + resKey + "'");
+          }
+        }
+      }
+    }
+  } // this.localize
+
+  // Returns the message associated with a given key. If the key isn't found, the message (msg) as passed is returned.
+  this.localizeMsg = function (resKey, msg) {
+    if (resources && resources[resKey]) {
+      return resources[resKey];
+    }
+    else {
+      this.logWarning("Translation missing for resource key '" + resKey + "'");
+      return msg;
+    }
+  }
+
+  this.mask = function (msg) {
+    let propsToMask = ['username', 'password', 'bypasscode', 'otpcode', 'questions', 'deviceid', 'requeststate', 'phonenumber', 'token', 'authntoken', 'trusttoken', 'userid'];
+
+    var stars = '***';
+    var temp;
+    try {
+      if (msg !== Object(msg)) {
+        temp = JSON.parse(msg); // Object deep copy, except methods, that we don't need here.
+      }
+      else {
+        temp = JSON.parse(JSON.stringify(msg)); // Object deep copy, except methods, that we don't need here.
+      }
+      for (key in temp) {
+        if (temp.hasOwnProperty(key)) {
+          if (temp[key] !== Object(temp[key]) && propsToMask.indexOf(key.toLowerCase()) != -1) { // key is not a object
+            temp[key] = stars;
+          }
+
+          else if (Array.isArray(temp[key]) && propsToMask.indexOf(key.toLowerCase()) != -1) { // key is an object array
+            temp[key] = stars; // we're simply masking the whole array, don't care about the contents.
+          }
+
+          else { // key is simple object
+            for (subkey in temp[key]) {
+              if (temp[key].hasOwnProperty(subkey) && propsToMask.indexOf(subkey.toLowerCase()) != -1) {
+                temp[key][subkey] = stars;
+              }
+            }
+          }
+        }
+      }
+      return JSON.stringify(temp);
+    }
+    catch (e) {
+      return stars;
+    }
+  } //this.mask
+
+  this.logMsg = function (msg) {
+    if (window.console && this.debugEnabled) {
+      console.log('LoginApp: ' + msg);
+    }
+  } // this.logMsg
+
+  this.logWarning = function (msg) {
+    console.log('LoginApp (WARNING): ' + msg);
+  }
+
+  this.replaceDiv = function (divid, replacement, dofocus) {
+    // divname is the ID of the div to replace
+    // replacement is the Element to replace it with
+    // dofocus says "set the focus to the first text input"
+
+    // Note: for the signin-Tr the replacement div SHOULD havr a .id prop
+    // matching the one that's being replacing
+    if (replacement.id != divid) {
+      this.logMsg("WARNING: replacement div id=" + replacement.id + " does not match expected value of " + divid);
+    }
+
+    // Localizing while replacement div still not visible.
+    this.localize(replacement);
+
+    var oldForm = document.getElementById(divid);
+    if (oldForm) {
+      oldForm.parentNode.replaceChild(replacement, oldForm);
+    }
+
+    this.showReinputUserName(replacement, this, 2000);
+
+    // find the first text input field and put the focus there
+    if (dofocus) {
+      div = document.getElementById(divid);
+      if (div) {
+        let firstInput = div.querySelector('input[type="text"]');
+        if (firstInput) firstInput.focus();
+      }
+    }
+  }
+
+  // Performs form data validation and style form elements accordingly
+  this.validateForm = function (formDiv) {
+    formDiv.querySelector("#submit-btn").disabled = true;
+    // Looking for input fields marked as required and empty.
+    const inputFields = formDiv.getElementsByTagName("INPUT");
+    var isError = false;
+    for (i = 0; i < inputFields.length; i++) {
+      this.logMsg('Validating field ' + inputFields[i].id);
+      if (inputFields[i].required && inputFields[i].value.trim() === '') {
+        isError = true;
+        // Toggling the element class for styling on error.
+        inputFields[i].classList.add('on__error');
+      }
+    }
+    if (isError) {
+      let errorMessage = this.localizeMsg('error-required-fld', 'Required field empty');
+      this.setLoginErrorMessage({ code: '', msg: errorMessage });
+      formDiv.querySelector("#submit-btn").disabled = false;
+      return false;
+    }
+    this.logMsg('Validation OK.');
+    this.removeBtnAndShowSpinner(formDiv.querySelector("#submit-btn"));
+    return true;
+  }
+
+  // Handles focusout event on input fields for styling the field
+  this.handleFocusOutEvent = function (elem) {
+    elem.addEventListener('focusout', function () {
+      if (elem.value.trim().length == 0) {
+        elem.classList.add('on__error');
+      }
+      else {
+        elem.classList.remove('on__error');
+      }
+    });
+  }
+
+  // Handles onClick event for submiting form data.
+  this.handleClickToSubmitEvent = function (formDiv, obj, methodName, includeAuthnFactor) {
+    const self = this;
+    formDiv.querySelector("#submit-btn").onclick = function () {
+      if (obj.validateForm(formDiv)) {
+        const payload = obj.buildPayload(methodName, formDiv);
+        if (payload) { // Giving a chance for buildPayload to fail.
+          self.logMsg("Invoking " + methodName + " with credentials " + self.mask(payload));
+          obj.sdk[methodName](payload, includeAuthnFactor);
+        }
+        else {
+          this.log("handleClickToSubmitEvent: [BUG] payload must not be null");
+        }
+      }
+    }
+  }
+
+  // Handles onKeyPress event for submiting form data.
+  this.handleKeyPressToSubmitEvent = function (formDiv, elem, obj, methodName, includeAuthnFactor) {
+    const self = this;
+    elem.onkeypress = function (event) {
+      if (event.keyCode == 13) {
+        if (obj.validateForm(formDiv)) {
+          const payload = obj.buildPayload(methodName, formDiv);
+          if (payload) { // Giving a chance for buildPayload to fail.
+            self.logMsg("Invoking " + methodName + " with credentials " + self.mask(payload));
+            obj.sdk[methodName](payload, includeAuthnFactor);
+          }
+          else {
+            this.log("handleKeyPressToSubmitEvent: [BUG] payload must not be null");
+          }
+        }
+      }
+    }
+  }
+
+  // Handles onClick event for handling forgotPassword.
+  this.handleClickEvent = function (formDiv, obj) {
+
+  }
+
+  // Builds the expected credentials payload to the respective API in the SDK, here identified by methodName.
+  this.buildPayload = function (methodName, formDiv) {
+    console.log('*** LoginApp buildPayload');
+
+    // ER #1. Saving the request origin. This is read later for determining the user preferred factor.
+    this.setUnPwOrigin("true");
+    var data = {
+      "username": document.getElementById("userid").value,
+      "password": document.getElementById("password").value,
+      "origin": window.location.origin
+    }
+    if (document.getElementById("kmsi") != null) {
+      data["keepMeSignedIn"] = document.getElementById("kmsi").checked;
+      return data;
+    }
+    return data;
+  }
+
+  /* ----------------------------------------------------------------------------------------------------------------
+     -------------------------------------------- MAIN METHODS ------------------------------------------------------
+     ---------------------------------------------------------------------------------------------------------------- */
+
+  // Generic method for displaying a form, identified by which (the factor) and step (which build method to call)
+  this.displayForm = function (which, step, payload, username) {
+    const self = this;
+
+    this.logMsg("Which: " + which);
+    this.logMsg("Step: " + step);
+    this.logMsg("Payload: " + this.mask(payload));
+
+    // "which" will be the key to this.AuthenticationFactorInfo
+    var formDiv = document.createElement('tr');
+    formDiv.classList.add("form");
+    formDiv.classList.add("sign-in");
+    formDiv.id = 'signin-tr';
+    // our own tag so we can suppress this option if the user clicks alternative
+    formDiv.whichFactorForm = which;
+    formDiv.step = step;
+
+    if (which === "spinner") {
+      formDiv.innerHTML = '<tr class="loader" data-res="loading-msg">Loading...</tr>';
+      this.replaceDiv("signin-tr", formDiv, true);
+    }
+    else
+      if (this.AuthenticationFactorInfo[which]) {
+        if (step === "submitCreds") {
+          (this.AuthenticationFactorInfo[which]["loginFormFunction"])(formDiv, payload);
+
+          // hide stuff that is not needed except on the initial screen
+          if ((which !== "USERNAME_PASSWORD") && (which !== "USERNAME") && (which !== "PASSWORD")) {
+            Array.prototype.slice.call(document.querySelectorAll('.hidelater')).forEach(function (e) { // Making MS (IE and Edge) family happy
+              e.style.visibility = "hidden";
+            });
+
+ 
+          }
+
+          this.replaceDiv("signin-tr", formDiv, true);
+        }
+      }
+
+  }
+
+  // Builds the main form, allowing username/password posting + IDP selection
+  // Logic has been moved into buildForm
+  this.buildUidPwForm = function (formDiv, IDPdata) {
+    this.buildForm(formDiv, "showUidPw", IDPdata, true);
+  }
+
+  // this function builds both the UID + PW and/or the IDP chooser form
+  // this is all in one function to avoid duplicating code or comments
+  // the boolean showUidPw determines whether to show the uid+pw portion
+  this.buildForm = function (formDiv, showField, IDPdata, isFirstForm) {
+    const self = this;
+    var showUidOrUidPwFields = true;
+
+    let keepMeSignedIn = JSON.parse(this.getLoginCtx())["keepMeSignedInEnabled"];
+    let checkbox = "";
+    formDiv.innerHTML +=
+    '<label><span style="font-weight: bold;font-size:12px;padding-left:5px;margin-left:5px" data-res="signin-username-fld">Username</span><span class="mandatory_field">*</span><input style="margin-left:3px" type="text" id="userid" value="" required></label>' +
+    '<label><span style="font-weight: bold;font-size:12px;padding-left:5px;margin-left:5px" data-res="signin-password-fld">Password</span><span class="mandatory_field">*</span><input style="margin-left:8px" type="password" id="password" value="" required></label>';
+
+    if (showUidOrUidPwFields) {
+      formDiv.innerHTML +=
+        '<label class="error-msg" id="login-error-msg"></label>' + checkbox +
+        '<br/><button type="button" style="width: 80px;margin-left:75px" class="btn btn-primary btn-sm btn-color shadow rounded"" id="submit-btn" data-res="signin-submit-btn">Sign In</button>'
+    }
+
+    // and now that we're done updating the HTML of that div we can
+    // attach the event handlers for clicking or hitting enter
+    if (showUidOrUidPwFields) {
+      if (showField == "showUid") {
+        this.handleClickToSubmitEvent(formDiv, this, 'postUserName');
+        this.handleKeyPressToSubmitEvent(formDiv, formDiv.querySelector("#userid"), this, 'postUserName');
+      }
+      else {
+        this.handleClickToSubmitEvent(formDiv, this, 'postCreds');
+        this.handleKeyPressToSubmitEvent(formDiv, formDiv.querySelector("#password"), this, 'postCreds');
+      }
+      this.handleClickEvent(formDiv, this);
+    }
+
+    return formDiv;
+  }; // this.buildForm
+
+    
+ // This method works as the app main controller, directing requests to the appropriate methods based on the received payload from IDCS.
+  this.nextOperation = function (payload, username) {
+
+    this.logMsg("nextOperation: " + this.mask(payload));
+
+    if (payload.requestState && payload.nextOp) {
+
+      this.setRequestState(payload.requestState);
+
+      if (payload.nextOp[0] === 'credSubmit') {
+        if (payload.nextAuthFactors) {
+
+          if (payload.nextAuthFactors.includes('USERNAME_PASSWORD')) {
+            this.displayPasswordForm(payload);
+          }
+          if (payload.nextAuthFactors.includes('IDP')) {
+            this.displayIDPChooserForm(payload);
+          }
+
+          //    else {
+          var sameFactorMultipleDevices = false;
+          payload.nextAuthFactors.forEach(function (factor) {
+            if (payload[factor] && payload[factor].enrolledDevices && payload[factor].enrolledDevices.length > 0) {
+              sameFactorMultipleDevices = true;
+            }
+          });
+          // Fix on bug reported by Pulkit Agarwal on 12/04/18. Used to happen when MFA is active for a Social User that isn't registered in IDCS.
+          // We must send the user to enrollment where enrollment is also in nextOp array.
+          if (payload.nextOp[1] === "enrollment") {
+            this.displayEnrollmentOptionsForm(payload);
+          }
+          // End of fix.
+          // If there's more than one nextAuthFactor or multiple devices for the same factor, we go to alternative factors flow.
+          else if (payload.nextAuthFactors.length > 1 && payload.nextAuthFactors.includes("USERNAME") && payload.nextOp.includes("credSubmit")) {
+            if (!this.getUnPwOrigin() || this.getUnPwOrigin() === "true") {
+              this.setPreferredFactor({ factor: payload.nextAuthFactors[0], displayName: payload.displayName });
+              this.setUnPwOrigin("false");
+            }
+            this.displayForm(payload.nextAuthFactors[0], "submitCreds", payload);
+          }
+
+          else {
+            // ER #1
+            // Doing this because the API response not always tell whether the factor is the preferred one.
+            // Setting the user preferred factor. It's the one returned from username/password submit.
+            // We may also come here via Social Login, in which case the origin is undefined.
+            if (!this.getUnPwOrigin() || this.getUnPwOrigin() === "true") {
+              this.setPreferredFactor({ factor: payload.nextAuthFactors[0], displayName: payload.displayName });
+              this.setUnPwOrigin("false");
+            }
+            // End of ER #1.
+            this.displayForm(payload.nextAuthFactors[0], "submitCreds", payload);
+            //       }
+          }
+        }
+      }
+      else {
+        this.logMsg('Do not know what to do with given payload.');
+      }
+    }
+  }; // this.nextOperation
+
+  /* ----------------------------------------------------------------------------------------------------------------
+     -------------------------------------------- HELPER METHODS ----------------------------------------------------
+     ---------------------------------------------------------------------------------------------------------------- */
+
+  this.addErrorDetailsIfAny = function (errorElem, details) {
+    if (details != null) {
+      var detailsDiv = document.createElement('div');
+      detailsDiv.classList.add('newline');
+      for (i = 0; i < details.length; i++) {
+        detailsDiv.innerHTML += '<span class="error-msg-detail">' + details[i] + '</span>';
+      }
+      errorElem.appendChild(detailsDiv);
+    }
+  }
+
+  this.handleBackendError = function (error) {
+    var errorMsg = '';
+    if (error) {
+      errorMsg = error.msg;
+      if (error.code.indexOf('AUTH-1120') != -1) {
+        errorMsg = this.localizeMsg('error-AUTH-1120', 'Invalid state. Please, reinitiate login');
+      }
+      else if (error.code.indexOf('AUTH-1112') != -1) {
+        errorMsg = this.localizeMsg('error-AUTH-1112', 'Access denied');
+      }
+      else if (error.code.indexOf('SDK-AUTH') != -1) {
+        errorMsg = this.localizeMsg('error-' + error.code, error.msg);
+      }
+      else if (error.code.indexOf('SSO-') != -1 && error.msg === 'undefined') {
+        errorMsg = this.localizeMsg('error-' + error.code, '<Undefined error message>');
+      }
+      else {
+        this.logMsg('Passing backend error message as is: ' + errorMsg);
+      }
+    }
+    return errorMsg;
+  }
+
+  this.changeButtonOnError = function (button) {
+    if (button) {
+      button.style.display = 'block';
+      button.disabled = false;
+    }
+  }
+
+  this.clearErrorsOnScreenIfAny = function () {
+    var socialErrorElem = document.getElementById("social-login-error-msg");
+    if (socialErrorElem) {
+      socialErrorElem.innerHTML = '';
+    }
+    var loginErrorElem = document.getElementById("login-error-msg");
+    if (loginErrorElem) {
+      loginErrorElem.innerHTML = '';
+    }
+  }
+
+  this.setLoginErrorMessage = function (error) {
+    this.clearErrorsOnScreenIfAny();
+    var errorElemId = "login-error-msg";
+    if (error.type === 'social') {
+      errorElemId = "social-login-error-msg";
+    }
+
+    this.stopPushPoll();
+    this.removeSpinner();
+    var errorMsg = this.handleBackendError(error);
+
+    var errorElem = document.getElementById(errorElemId);
+    if (errorElem) {
+
+      this.changeButtonOnError(document.querySelector("#submit-btn"));
+      errorElem.innerHTML = errorMsg;
+      this.addErrorDetailsIfAny(errorElem, error.details);
+    }
+    else {
+      var formDiv = document.createElement('div');
+      formDiv.id = 'signin-tr';
+      formDiv.classList.add('form');
+
+      var errorLabel = document.createElement('label');
+      errorLabel.id = errorElemId;
+      errorLabel.classList.add('error-msg');
+      errorLabel.innerHTML = errorMsg;
+
+      formDiv.appendChild(errorLabel);
+      this.replaceDiv("signin-tr", formDiv, true)
+    }
+  }
+
+  this.getBackendErrorMsg = function () {
+    var error = sessionStorage.getItem('backendError'); // This is set by the server-side backend
+    if (error) {
+      sessionStorage.removeItem('backendError');
+      return error;
+    }
+    return;
+  }
+
+  this.encodeValueChars = function (str) {
+    return (
+      encodeURIComponent(str)
+        // Note that although RFC3986 reserves "!", RFC5987 does not,
+        // so we do not need to escape it
+        .replace(/['()]/g, escape) // i.e., %27 %28 %29
+        .replace(/\*/g, "%2A")
+        // The following are not required for percent-encoding per RFC5987,
+        // so we can allow for a little better readability over the wire: |`^
+        .replace(/%(?:7C|60|5E)/g, unescape)
+    );
+  }
+
+  this.htmlEscape = function (string) {
+    return String(string)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  this.setAccessToken = function (at) {
+    return sessionStorage.setItem("signinAT", at);
+  }
+
+  this.getAccessToken = function () {
+    return sessionStorage.getItem("signinAT");
+  }
+
+  this.isIDPUserInIDCS = function () {
+    return sessionStorage.getItem("isIDPUserInIDCS");
+  }
+
+  this.getIDPAuthnToken = function () {
+    return sessionStorage.getItem("IDPAuthnToken");
+  }
+
+  this.getLoginCtx = function () {
+    return sessionStorage.getItem("initialState");
+  }
+
+  this.setRequestState = function (rs) {
+    sessionStorage.setItem("requestState", rs);
+  }
+
+  this.getRequestState = function () {
+    return sessionStorage.getItem("requestState");
+  }
+
+  this.getClientId = function () {
+    return sessionStorage.getItem("clientId");
+  }
+
+  this.getInitialState = function () {
+    return sessionStorage.getItem("initialState");
+  }
+
+  // This object is used mostly by method displayForm, telling it which form to build.
+  const self = this;
+  this.AuthenticationFactorInfo = {
+    USERNAME_PASSWORD: {
+      // this one is only used for the initial login screen
+      label: "Username and password",
+      loginFormFunction: function (formdiv, payload) { self.buildUidPwForm(formdiv, payload); },
+    },
+    USERNAME: {
+      // this one is only used for the initial login screen
+      label: "Username",
+      loginFormFunction: function (formdiv, payload) { self.buildUidForm(formdiv, payload); },
+    },
+    IDP: {
+      // If the admin removes "local IDP" in the IDP Policies then IDCS asks custom login app
+      // to display only the IDP chooser on the intiial form
+      label: "Select an IDP",
+      loginFormFunction: function (formdiv, payload) { self.buildIdpChooserForm(formdiv, payload.IDP, true); },
+    }
+  }
+  this.setUnPwOrigin = function (flag) {
+    sessionStorage.setItem("unPwOrigin", flag)
+  }
+
+  this.getOperation = function () {
+    return sessionStorage.getItem("operation");
+  }
+
+  this.getToken = function () {
+    return decodeURIComponent(sessionStorage.getItem("token"));
+  }
+
+  this.ToBeImplemented = function (which) {
+    alert("Case " + which + " needs to be implemented!");
+  }
+
+  this.sdk = new IdcsAuthnSDK(this);
+  this.sdk.initAuthentication();
+}; // function loginApp
+
+const loginApp = new LoginApp();
+loginApp.localize(document);

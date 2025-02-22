@@ -1,0 +1,275 @@
+package ro.upt.sma.context
+
+import android.Manifest.permission
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
+import androidx.annotation.StringRes
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.DetectedActivity
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
+import ro.upt.sma.context.activity.ActivityRecognitionHandler
+import ro.upt.sma.context.activity.ActivityRecognitionService
+import ro.upt.sma.context.location.LocationHandler
+
+class ContextActivity : AppCompatActivity() {
+
+    private val latLngState = mutableStateOf(LatLng(27.986065, 86.922623))
+    private val activityState = mutableStateOf("Not detected")
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        this.locationHandler = LocationHandler(this)
+        this.activityRecognitionHandler = ActivityRecognitionHandler(this)
+
+        setContent { UserContextScreen() }
+    }
+
+    @Composable
+    private fun UserContextScreen() {
+        Column {
+            Row(
+                Modifier.weight(6f)
+            ) {
+                MapComposable()
+            }
+            Row(
+                Modifier
+                    .weight(2f)
+                    .align(Alignment.CenterHorizontally)
+                    .padding(16.dp)
+            ) {
+                LocationComposable()
+            }
+            Row(
+                Modifier
+                    .weight(2f)
+                    .align(Alignment.CenterHorizontally)
+            ) {
+                ActivityComposable()
+            }
+        }
+    }
+
+    @Composable
+    private fun MapComposable() {
+        val cameraPositionState = rememberCameraPositionState {
+            position = CameraPosition.fromLatLngZoom(latLngState.value, 10f)
+        }
+        LaunchedEffect(latLngState.value) {
+            cameraPositionState.animate(
+                update = CameraUpdateFactory.newCameraPosition(
+                    CameraPosition(latLngState.value, 15f, 0f, 0f)
+                ),
+                durationMs = 1000
+            )
+        }
+        GoogleMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState
+        ) {
+            // TODO 1: Create a marker and set its position from [latLngState].
+            Marker(
+                state = MarkerState(position = latLngState.value),
+                title = "Current Location",
+                snippet = "Lat: ${latLngState.value.latitude}, Lng: ${latLngState.value.longitude}"
+            )
+        }
+    }
+
+    @Composable
+    private fun LocationComposable() {
+        Text(text = "Lat = ${latLngState.value.latitude}, Lng = ${latLngState.value.longitude}")
+    }
+
+    @Composable
+    private fun ActivityComposable() {
+        Card(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Favorite,
+                tint = Color.Red,
+                contentDescription = "Activity Icon",
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(8.dp)
+            )
+            Text(
+                text = activityState.value,
+                fontSize = 24.sp,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    override fun onResume() {
+        super.onResume()
+
+        if (!isLocationPermissionGranted) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(permission.ACCESS_FINE_LOCATION),
+                LOCATION_PERMISSION_REQUEST_ID
+            )
+        }
+
+        if (!isActivityPermissionGranted) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(permission.ACTIVITY_RECOGNITION),
+                ACTIVITY_PERMISSION_REQUEST_ID
+            )
+        }
+
+        setupLocation()
+
+        // TODO 5: Uncomment the line below.
+        setupActivityRecognition()
+    }
+
+    override fun onPause() {
+        super.onPause()
+
+        if (locationCallback != null) {
+            locationHandler.unregisterLocationListener(locationCallback!!)
+        }
+        if (activityPendingIntent != null) {
+            activityRecognitionHandler.unregisterPendingIntent(activityPendingIntent!!)
+        }
+        if (activityRecognitionReceiver != null) {
+            unregisterReceiver(activityRecognitionReceiver)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            LOCATION_PERMISSION_REQUEST_ID -> {
+                checkAndShowToast(grantResults, R.string.toast_location_permission)
+            }
+
+            ACTIVITY_PERMISSION_REQUEST_ID -> {
+                checkAndShowToast(grantResults, R.string.toast_activity_permission)
+            }
+        }
+    }
+
+    private fun checkAndShowToast(grantResults: IntArray, @StringRes toastResId: Int) {
+        if (grantResults.isNotEmpty() && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, toastResId, Toast.LENGTH_SHORT)
+                .show()
+        }
+    }
+
+
+    private fun setupLocation() {
+        this.locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                locationResult.lastLocation?.let {
+                    latLngState.value = LatLng(it.latitude, it.longitude)
+                }
+            }
+        }
+        locationHandler.registerLocationListener(locationCallback!!)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun setupActivityRecognition() {
+        this.activityPendingIntent = activityRecognitionHandler.registerPendingIntent()
+
+        this.activityRecognitionReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                // TODO 6: Extract activity type from intent extras and use it to invoke [updateActivityCard].
+                //   Take a close look at [ActivityRecognitionService] to see how intent extras are formed.
+                updateActivityCard(intent.getIntExtra(ActivityRecognitionService.ACTIVITY_EXTRA, DetectedActivity.UNKNOWN))
+            }
+        }
+
+        // TODO 7: Register the created receiver only for ActivityRecognitionService.INTENT_ACTION.
+        registerReceiver(activityRecognitionReceiver, IntentFilter(ActivityRecognitionService.INTENT_ACTION), RECEIVER_NOT_EXPORTED)
+    }
+
+    private fun updateActivityCard(activityType: Int) {
+        val activityResId: Int = when (activityType) {
+            DetectedActivity.IN_VEHICLE -> R.string.activity_in_vehicle
+            DetectedActivity.ON_BICYCLE -> R.string.activity_on_bicycle
+            DetectedActivity.ON_FOOT -> R.string.activity_on_foot
+            DetectedActivity.RUNNING -> R.string.activity_running
+            DetectedActivity.WALKING -> R.string.activity_walking
+            DetectedActivity.TILTING -> R.string.activity_tilting
+            DetectedActivity.STILL -> R.string.activity_still
+            else -> R.string.activity_unknown
+        }
+
+        activityState.value = getString(activityResId)
+    }
+
+    private lateinit var locationHandler: LocationHandler
+    private lateinit var activityRecognitionHandler: ActivityRecognitionHandler
+    private var locationCallback: LocationCallback? = null
+    private var activityPendingIntent: PendingIntent? = null
+    private var activityRecognitionReceiver: BroadcastReceiver? = null
+
+    private val isLocationPermissionGranted: Boolean
+        get() = ContextCompat.checkSelfPermission(
+            this,
+            permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+    private val isActivityPermissionGranted: Boolean
+        get() = ContextCompat.checkSelfPermission(
+            this,
+            permission.ACTIVITY_RECOGNITION
+        ) == PackageManager.PERMISSION_GRANTED
+
+    companion object {
+        private const val LOCATION_PERMISSION_REQUEST_ID = 111
+        private const val ACTIVITY_PERMISSION_REQUEST_ID = 113
+    }
+
+}

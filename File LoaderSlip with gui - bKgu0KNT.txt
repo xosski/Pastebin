@@ -1,0 +1,97 @@
+import os
+from tkinter import *
+from tkinter.scrolledtext import ScrolledText
+from tkinter import messagebox
+
+current_file = "test.txt"
+files = [f for f in os.listdir() if f.endswith(".txt")]  # Only show .txt files
+
+# Function to handle selection from the file list
+def on_select(event):
+    selected_index = files_list.curselection()  # Get index of the selected item
+    if selected_index:
+        selected_item = files_list.get(selected_index)
+        file_entry.delete(0, END)
+        file_entry.insert(0, selected_item[:-4])  # Set file name without extension
+
+# Function to save content to the current file
+def save_file():
+    try:
+        with open(current_file, "w+", encoding="utf-8") as f:
+            f.write(text_field.get(1.0, END).strip())  # Remove trailing newlines/extra spaces
+        messagebox.showinfo("Success", f"File '{current_file}' saved successfully!")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to save file: {e}")
+
+# Function to reset text field
+def reset_file():
+    text_field.delete(1.0, END)
+
+# Function to load content from the current file
+def get_file():
+    try:
+        with open(current_file, "r+", encoding="utf-8") as f:
+            text_field.insert(1.0, f.read())
+    except FileNotFoundError:
+        messagebox.showerror("Error", f"File '{current_file}' not found!")
+
+# Function to open a new file
+def open_file():
+    global current_file
+    new_file = file_entry.get().strip()
+    
+    if not new_file:  # Ensure file name is not empty
+        messagebox.showwarning("Input Error", "Please provide a valid file name.")
+        return
+    
+    # Add .txt extension and check if file exists
+    current_file = new_file + ".txt"
+    if current_file not in files:
+        messagebox.showerror("File Not Found", f"The file '{current_file}' does not exist.")
+        return
+    
+    try:
+        with open(current_file, "r+", encoding="utf-8") as f:
+            reset_file()
+            text_field.insert(1.0, f.read())
+        messagebox.showinfo("Success", f"Opened file: {current_file}")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to open file: {e}")
+
+# Main application window
+root = Tk()
+
+# Configure the root window
+root['bg'] = "#fff9ed"
+root.geometry('800x600')
+root.title("Text File Editor")
+
+# Text field for editing
+text_field = ScrolledText(root, wrap=WORD, width=80, height=20)
+text_field.place(relx=0.5, rely=0.33, anchor=CENTER)
+
+# Listbox for file selection
+files_list = Listbox(root)
+for file in files:
+    files_list.insert(END, file)
+files_list.bind('<<ListboxSelect>>', on_select)
+
+# Buttons for actions
+save_button = Button(root, text="Save", command=save_file)
+reset_button = Button(root, text="Reset", command=reset_file)
+open_button = Button(root, text="Open", command=open_file)
+
+# File entry to show the selected file name
+file_entry = Entry(root)
+
+# Place the widgets in the window
+save_button.place(relx=0.15, rely=0.7)
+reset_button.place(relx=0.25, rely=0.7)
+open_button.place(relx=0.45, rely=0.7)
+file_entry.place(relx=0.60, rely=0.7)
+files_list.place(relx=0.60, rely=0.75)
+
+# Load the current file if it exists
+get_file()
+
+root.mainloop()

@@ -1,0 +1,160 @@
+import discord
+from discord.ext import commands
+import sqlite3
+import wavelink
+import asyncio
+import logging
+
+class TwentyFourSeven(commands.Cog):
+    def __init__(self, client):
+        self.client = client
+        self.color = discord.Color.blue()
+        self.logger = logging.getLogger(__name__)
+        
+        # Ensure the 247 table exists with voice_channel_id
+        with sqlite3.connect("247.db") as conn:
+            c = conn.cursor()
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS settings (
+                    guild_id INTEGER PRIMARY KEY,
+                    mode TEXT,
+                    voice_channel_id INTEGER
+                )
+            """)
+            conn.commit()
+
+    @commands.command(name="247", aliases=["24/7"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def twenty_four_seven(self, ctx, mode: str = None):
+        """
+        Set the 24/7 mode for the server.
+        """
+        if not ctx.author.guild_permissions.manage_guild:
+            return await ctx.send(embed=discord.Embed(description="❌ You don't have the **Manage Guild** permission to use this command.", color=self.color))
+
+        if not ctx.author.voice or not ctx.author.voice.channel:
+            return await ctx.send(embed=discord.Embed(description="❌ You must be in a voice channel to use this command.", color=self.color))
+
+        if not ctx.voice_client:
+            return await ctx.send(embed=discord.Embed(description="❌ I am not in a voice channel. Use the `join` command first.", color=self.color))
+
+        if mode is None:
+            return await ctx.send(embed=discord.Embed(description="❌ Please provide a mode: `enabled` or `disabled`.", color=self.color))
+
+        mode = mode.lower()
+        if mode not in ["enabled", "disabled", "enable", "disable"]:
+            return await ctx.send(embed=discord.Embed(description="❌ Invalid mode! Use `enabled` or `disabled`.", color=self.color))
+
+        mode = "enabled" if mode in ["enabled", "enable"] else "disabled"
+        voice_channel_id = ctx.author.voice.channel.id  # Store the current voice channel ID
+
+        with sqlite3.connect("247.db") as conn:
+            c = conn.cursor()
+            c.execute("SELECT mode FROM settings WHERE guild_id = ?", (ctx.guild.id,))
+            result = c.fetchone()
+
+            if result:
+                if result[0] == mode:
+                    return await ctx.send(embed=discord.Embed(description=f"❌ 24/7 Mode is already set to `{mode}`.", color=self.color))
+                c.execute("UPDATE settings SET mode = ?, voice_channel_id = ? WHERE guild_id = ?", (mode, voice_channel_id, ctx.guild.id))
+                conn.commit()
+                await ctx.send(embed=discord.Embed(description=f"✅ Successfully updated 24/7 Mode to `{mode}` in <#{voice_channel_id}>.", color=self.color))
+            else:
+                c.execute("INSERT INTO settings (guild_id, mode, voice_channel_id) VALUES (?, ?, ?)", (ctx.guild.id, mode, voice_channel_id))
+                conn.commit()
+                await ctx.send(embed=discord.Embed(description=f"✅ Successfully set 24/7 Mode to `{mode}` in <#{voice_channel_id}>.", color=self.color))
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        """
+        Reconnect to all enabled 24/7 guilds on bot startup.
+        """
+        await self.client.wait_until_ready()
+
+        if not wavelink.Pool.nodes.values():
+            self.logger.warning("No Lavalink nodes connected. Retrying...")
+            await asyncio.sleep(5)
+            if not wavelink.Pool.nodes.values():
+                self.logger.error("Lavalink nodes are still not connected. Exiting 24/7 reconnect process.")
+                return
+
+        with sqlite3.connect("247.db") as conn:
+            c = conn.cursor()
+            c.execute("SELECT guild_id, voice_channel_id FROM settings WHERE mode = ?", ("enabled",))
+            guilds = c.fetchall()
+
+        for guild_id, voice_channel_id in guilds:
+            guild = self.client.get_guild(guild_id)
+
+            if guild is None:
+                continue
+
+            voice_channel = guild.get_channel(voice_channel_id)
+            if voice_channel is None:
+                self.logger.warning(f"Voice channel {voice_channel_id} not found in guild {guild_id}. Skipping.")
+                continue
+
+            # Check if the bot has permission to connect and speak in the channel
+            if not voice_channel.permissions_for(guild.me).connect or not voice_channel.permissions_for(guild.me).speak:
+                self.logger.warning(f"Missing permission to connect or speak in {voice_channel.name} ({voice_channel_id}) in {guild.name}.")
+                continue
+
+            voice_state = guild.voice_client
+            if voice_state is None:
+                try:
+                    await voice_channel.connect(cls=wavelink.Player)
+                    self.logger.info(f"Reconnected to {voice_channel.name} in {guild.name}")
+                except Exception as e:
+                    self.logger.error(f"Failed to connect to {voice_channel.name} in {guild.name}: {e}")
+
+    @commands.Cog.listener()
+    async def on_wavelink_inactive_player(self, player):
+        """
+        Handle inactive players based on 24/7 mode settings.
+        """
+        guild_id = player.guild.id
+
+        with sqlite3.connect("247.db") as conn:
+            c = conn.cursor()
+            c.execute("SELECT mode FROM settings WHERE guild_id = ?", (guild_id,))
+            result = c.fetchone()
+
+        if result and result[0] == "enabled":
+            return  # Stay in the voice channel
+        else:
+            try:
+                await player.home.send(embed=discord.Embed(
+                    description="❌ The voice channel is inactive, and I have disconnected. To keep me connected 24/7, please enable 24/7 mode using `!247 enabled`.",
+                    color=self.color
+                ))
+            except Exception as e:
+                self.logger.error(f"Failed to send message: {e}")
+            await player.disconnect()
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        """
+        Detect when the bot is kicked or disconnected from the voice channel.
+        Reconnect if 24/7 mode is enabled.
+        """
+        if member.id == self.client.user.id:  # Check if the bot is the one being updated
+            if before.channel and not after.channel:  # Bot was disconnected
+                with sqlite3.connect("247.db") as conn:
+                    c = conn.cursor()
+                    c.execute("SELECT mode, voice_channel_id FROM settings WHERE guild_id = ?", (before.guild.id,))
+                    result = c.fetchone()
+
+                if result and result[0] == "enabled":
+                    voice_channel = before.guild.get_channel(result[1])
+                    if voice_channel:
+                        try:
+                            await voice_channel.connect(cls=wavelink.Player)
+                            await before.guild.text_channels[0].send(embed=discord.Embed(
+                                description=f"✅ Reconnected to <#{voice_channel.id}> to maintain 24/7 mode.",
+                                color=self.color
+                            ))
+                        except Exception as e:
+                            self.logger.error(f"Failed to reconnect to <#{voice_channel.id}>: {e}")
+
+async def setup(client):
+    await client.add_cog(TwentyFourSeven(client))

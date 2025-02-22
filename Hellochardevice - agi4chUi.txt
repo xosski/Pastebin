@@ -1,0 +1,138 @@
+#include <linux/cdev.h>
+#include <linux/fs.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/printk.h>
+#include <linux/stat.h>
+#include <linux/timekeeping.h>
+#include <linux/uaccess.h>
+#include <linux/utsname.h>
+
+static char *who = "Master"; // Module parameter for customization
+module_param(who, charp, S_IRUGO | S_IWUSR); // Read/Write access to `who`
+
+static ssize_t hello_write(struct file *file, const char __user *buf,
+                           size_t count, loff_t *ppos);
+static ssize_t hello_read(struct file *file, char __user *buf, size_t count,
+                          loff_t *ppos);
+static long hello_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+
+// Buffer for storing data
+static void *hello_buf;
+static int hello_bufsize = 8192;  // Default buffer size
+static int hello_count = 1;       // Number of devices
+static dev_t hello_dev;           // Device number
+static struct cdev hello_cdev;    // Character device structure
+static struct file_operations hello_fops = {.owner = THIS_MODULE,
+                                            .read = hello_read,
+                                            .write = hello_write,
+                                            .unlocked_ioctl = hello_ioctl};
+
+// Initialize the module
+static int __init hello_init(void) {
+  int err;
+
+  // Dynamically allocate memory for buffer
+  hello_buf = kzalloc(hello_bufsize, GFP_KERNEL);
+  if (!hello_buf) {
+    pr_err("Failed to allocate buffer\n");
+    err = -ENOMEM;
+    goto err_exit;
+  }
+
+  // Register device region
+  if (alloc_chrdev_region(&hello_dev, 0, hello_count, "hello")) {
+    pr_err("Failed to allocate char device region\n");
+    err = -ENODEV;
+    goto err_free_buf;
+  }
+
+  // Initialize and add the character device
+  cdev_init(&hello_cdev, &hello_fops);
+  if (cdev_add(&hello_cdev, hello_dev, hello_count)) {
+    pr_err("Failed to add cdev\n");
+    err = -ENODEV;
+    goto err_dev_unregister;
+  }
+
+  pr_info("Hello major number: %d\n", MAJOR(hello_dev));
+  return 0;
+
+err_dev_unregister:
+  unregister_chrdev_region(hello_dev, hello_count);
+err_free_buf:
+  kfree(hello_buf);
+err_exit:
+  return err;
+}
+
+// Cleanup the module
+static void __exit hello_exit(void) {
+  cdev_del(&hello_cdev);
+  unregister_chrdev_region(hello_dev, hello_count);
+  kfree(hello_buf);
+  pr_info("Hello module unloaded\n");
+}
+
+// Read from the device
+static ssize_t hello_read(struct file *file, char __user *buf, size_t count,
+                          loff_t *ppos) {
+  int ret;
+
+  // Check if requested count is within the buffer size
+  if (*ppos >= hello_bufsize)
+    return 0; // No more data to read
+
+  // Adjust count to not exceed the buffer size
+  if (*ppos + count > hello_bufsize)
+    count = hello_bufsize - *ppos;
+
+  // Copy data from kernel space to user space
+  ret = copy_to_user(buf, hello_buf + *ppos, count);
+  if (ret == 0) {
+    *ppos += count; // Update file position
+    return count;
+  } else {
+    pr_err("Failed to read data\n");
+    return -EFAULT;
+  }
+}
+
+// Write to the device
+static ssize_t hello_write(struct file *file, const char __user *buf,
+                           size_t count, loff_t *ppos) {
+  int ret;
+
+  // Check if requested count exceeds the buffer size
+  if (*ppos >= hello_bufsize)
+    return -ENOMEM; // No more space to write
+
+  // Adjust count to prevent overflow
+  if (*ppos + count > hello_bufsize)
+    count = hello_bufsize - *ppos;
+
+  // Copy data from user space to kernel space
+  ret = copy_from_user(hello_buf + *ppos, buf, count);
+  if (ret == 0) {
+    *ppos += count; // Update file position
+    return count;
+  } else {
+    pr_err("Failed to write data\n");
+    return -EFAULT;
+  }
+}
+
+// IOCTL handler (Not implemented yet)
+static long hello_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
+  // Handle custom IOCTL commands here
+  pr_info("IOCTL command received: %u\n", cmd);
+  return 0;
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+
+MODULE_DESCRIPTION("A simple Linux driver with read/write functionality");
+MODULE_AUTHOR("Xosski");
+MODULE_LICENSE("GPL");
+MODULE_VERSION("1.0");

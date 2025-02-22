@@ -1,0 +1,150 @@
+import os
+import subprocess
+import sys
+import time
+import cv2
+import numpy as np
+import tflite_runtime.interpreter as tflite
+from picamera2 import Picamera2, Preview
+from gpiozero import AngularServo
+import RPi.GPIO as GPIO
+import logging
+
+# Configure logging
+logging.basicConfig(filename='/home/carlitos/Python/tLite/process.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+# GPIO setup for the ultrasonic sensor
+TRIG = 23
+ECHO = 24
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(TRIG, GPIO.OUT)
+GPIO.setup(ECHO, GPIO.IN)
+
+# Servo setup
+servo = AngularServo(27, min_pulse_width=0.0006, max_pulse_width=0.0023)
+
+# File paths
+MODEL_PATH = "model.tflite"
+LABELS_PATH = "labels.txt"
+IMAGE_DIR = "/home/carlitos/Python/tLite/captured_images"
+
+# Ensure the image directory exists
+os.makedirs(IMAGE_DIR, exist_ok=True)
+
+# Load labels
+with open(LABELS_PATH, "r") as f:
+    labels = f.read().splitlines()
+
+# Initialize the camera
+picam2 = Picamera2()
+camera_config = picam2.create_preview_configuration({"size": (980, 540)})
+picam2.configure(camera_config)
+picam2.start_preview(Preview.QTGL)
+picam2.start()
+
+# TensorFlow Lite model setup
+interpreter = tflite.Interpreter(model_path=MODEL_PATH)
+interpreter.allocate_tensors()
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+
+def measure_distance():
+    """Measure distance using the ultrasonic sensor."""
+    GPIO.output(TRIG, False)
+    time.sleep(0.1)
+
+    GPIO.output(TRIG, True)
+    time.sleep(0.00001)
+    GPIO.output(TRIG, False)
+
+    while GPIO.input(ECHO) == 0:
+        pulse_start = time.time()
+
+    while GPIO.input(ECHO) == 1:
+        pulse_end = time.time()
+
+    pulse_duration = pulse_end - pulse_start
+    distance = pulse_duration * 17150
+    distance = round(distance, 2)
+    return distance
+
+
+def capture_image():
+    """Capture an image from the camera."""
+    image = picam2.capture_array()
+    if image is None or image.size == 0:
+        logging.error("Failed to capture image.")
+        raise Exception("Failed to capture image.")
+
+    # Save the image with a timestamp
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    image_path = os.path.join(IMAGE_DIR, f"captured_image_{timestamp}.jpg")
+    cv2.imwrite(image_path, image)
+    logging.info(f"Image captured and saved: {image_path}")
+    return image_path
+
+
+def classify_image(image_path):
+    """Classify the captured image using the TensorFlow Lite model."""
+    try:
+        image = cv2.imread(image_path)
+        image = cv2.resize(image, (input_details[0]['shape'][2], input_details[0]['shape'][1]))
+        image = np.array(image, dtype=np.uint8)
+        image = np.expand_dims(image, axis=0)
+
+        interpreter.set_tensor(input_details[0]['index'], image)
+        interpreter.invoke()
+        output_data = interpreter.get_tensor(output_details[0]['index'])
+
+        predicted_label = labels[np.argmax(output_data)]
+        confidence = (np.max(output_data) / 255) * 100
+        logging.info(f"Image classified: {predicted_label} with confidence {confidence:.2f}")
+        return predicted_label, confidence
+    except Exception as e:
+        logging.error(f"Error during classification: {e}")
+        return "Unknown", 0.0
+
+
+def control_servo(label):
+    """Control the servo based on the classified label."""
+    if label == "1 Papel/Cartão":
+        logging.info("Material detected: Papel/Cartão, moving servo to 90°")
+        servo.angle = 90
+        time.sleep(2)
+        servo.angle = -90
+    elif label == "Another Object":
+        logging.info("Material detected: Another Object, moving servo to 45°")
+        servo.angle = 45
+        time.sleep(1)
+        servo.angle = -45
+    else:
+        logging.info(f"Material detected: {label}, no servo action.")
+
+
+try:
+    while True:
+        distance = measure_distance()
+        logging.info(f"Distance: {distance} cm")
+
+        if distance < 10:  # Object detected within 10 cm
+            logging.info("Object detected, capturing image...")
+            image_path = capture_image()
+
+            logging.info("Classifying image...")
+            label, confidence = classify_image(image_path)
+
+            logging.info(f"Material detected: {label} with confidence {confidence:.2f}")
+            control_servo(label)
+
+            time.sleep(5)  # Delay before next measurement
+        else:
+            time.sleep(1)  # Check every second if no object is detected
+
+except KeyboardInterrupt:
+    logging.info("Program interrupted by user.")
+finally:
+    picam2.stop()
+    GPIO.cleanup()
+    logging.info("GPIO cleanup completed.")

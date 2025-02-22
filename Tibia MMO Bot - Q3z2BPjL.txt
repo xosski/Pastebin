@@ -1,0 +1,970 @@
+UI.Label("-------Aoe_Spell_Target-------"):setColor("#FFA500")
+addTextEdit("AoeSpell", storage.aoeSpell, function(widget, text)
+storage.aoeSpell = text
+end)
+local singleSpell = "exori hur"
+macro(100, "Safe UE TARGET", function()
+  if not g_game.isAttacking() then 
+    return 
+  end
+  if getMonsters(7, false) ~= 0 and getPlayers(7, false) == 0 then
+    say(storage.aoeSpell)
+  elseif getPlayers(7, false) ~= 0 then
+    say(singleSpell)
+  end
+end)
+
+
+macro(100, "Spam UE TARGET", function()
+  if not g_game.isAttacking() then 
+    return 
+  end
+  if getMonsters(7, false) ~= 0 then
+    say(storage.aoeSpell)
+  end
+end)
+
+UI.Separator()
+UI.Label("-------Aoe_Spell_Spam-------"):setColor("#FFA500")
+addTextEdit("AoeSpellSpam", storage.AoeSpellSpam, function(widget, text)
+storage.AoeSpellSpam = text
+end)
+-- UE BEZ TARGET
+macro(100, "Spam UE - NO TARGET", function()
+  if getMonsters(4, false) ~= 0 then
+    say(storage.AoeSpellSpam)
+  end
+end)
+
+UI.Separator()
+UI.Separator()
+UI.Label("-------------BASIC-------------"):setColor("#FFA500")
+
+UI.Label("----------MP %----------"):setColor("#00FF00")
+addTextEdit("manaPercent", storage.manaPercent, function(widget, text)
+storage.manaPercent = text
+end)
+macro(100, "Manas", function()
+  local level = g_game.getLocalPlayer():getLevel()
+  local manaPotion = 268
+  if (manapercent() <= tonumber(storage.manaPercent)) then
+    usewith(manaPotion, player)
+  end
+end)
+
+UI.Separator()
+
+macro(100, "Healing", function()
+  local level = g_game.getLocalPlayer():getLevel()
+  local healingSpellLowLevel = "exura"
+  local healingSpellHighLevel = "exana mort"
+  local strongHealthPotion = 236
+  local greatHealthPotion = 239
+  local ultimateHealthPotion = 7643
+  local hpPercentSpell = 96
+  local hpPercentPotion = 67
+  if (hppercent() <= hpPercentSpell and level > 8 and level < 30) then
+    say(healingSpellLowLevel)
+  elseif (hppercent() <= hpPercentSpell and level > 35) then
+    say(healingSpellHighLevel)
+  end
+  if (hppercent() <= hpPercentPotion and level >= 50 and level < 200 ) then
+    usewith(strongHealthPotion, player)
+  elseif (hppercent() <= hpPercentPotion and level >= 200 and level < 400 ) then
+    usewith(greatHealthPotion, player)
+  elseif (hppercent() <= hpPercentPotion and level >= 400 ) then
+    usewith(ultimateHealthPotion, player)
+  end
+end)
+
+macro(100, "Haste", function()
+  local level = g_game.getLocalPlayer():getLevel()
+  local hasteLowLevel = "utani hur"
+  local hasteHighLevel = "mega hur"
+  if (not hasHaste() and level > 20 and level < 200) then
+    say(hasteLowLevel)
+  elseif (not hasHaste() and level > 200) then
+    say(hasteHighLevel)
+  end
+end)
+
+-- TASK MAX, TASK LEVEL
+local wait = false
+macro(100, "Task Commands", function() 
+  if wait then return end
+
+  say("!task maxpoints")
+
+  schedule(10000, function()
+    say("!task level")
+  end)
+
+  schedule(20000, function()
+    wait = false
+  end)
+  wait = true
+end)
+
+local targetID = nil
+
+-- escape when attacking will reset hold target
+onKeyPress(function(keys)
+    if keys == "Escape" and targetID then
+        targetID = nil
+    end
+end)
+
+macro(100, "ReAttack", function()
+    -- if attacking then save it as target, but check pos z in case of marking by mistake on other floor
+    if target() and target():getPosition().z == posz() and not target():isNpc() then
+        targetID = target():getId()
+    elseif not target() then
+        -- there is no saved data, do nothing
+        if not targetID then return end
+
+        -- look for target
+        for i, spec in ipairs(getSpectators()) do
+            local sameFloor = spec:getPosition().z == posz()
+            local oldTarget = spec:getId() == targetID
+            
+            if sameFloor and oldTarget then
+                attack(spec)
+            end
+        end
+    end
+end)
+
+macro(100, "ExoriHurSpam", function()
+  if not g_game.isAttacking() then
+   return
+  end
+   say("exori hur")
+end)
+
+-- Wymiana platinum na crystal oraz golden ingot
+local moneyIds = { 3035, 3043 } -- platinium coin, crystal coin
+macro(500, "Wymiana monet", function()
+  local containers = g_game.getContainers()
+  for index, container in pairs(containers) do
+    if not container.lootContainer then
+      for i, item in ipairs(container:getItems()) do
+        if item:getCount() == 100 then
+          for m, moneyId in ipairs(moneyIds) do
+            if item:getId() == moneyId then
+              return g_game.use(item)
+            end
+          end
+        end
+      end
+    end
+  end
+end)
+
+
+
+UI.Separator()
+UI.Separator()
+UI.Label("---------------EXP--------------"):setColor("#FFA500")
+-- POT FRIENDS
+macro(100, "Mana on Friends", function()
+  local friends = string.split(storage.friendNameh, "\n")
+  for i, spec in pairs(getSpectators()) do 
+    if table.contains(friends, spec:getName(), true) then 
+      if (manapercent() >= 30) and getDistanceBetween(pos(), spec:getPosition()) < 2 and spec:getManaPercent() < 60 then
+        useWith(tonumber(storage.manauh), spec)
+        delay(tonumber(storage.delaymana))
+      end
+    end
+  end
+end)
+
+UI.Button("Friend List Mana Potion", function(newText) 
+  UI.MultilineEditorWindow(storage.friendNameh or "", {title="Friend List ManaUH", description="Friend list UH\nExample:\nPlayer1\nPlayer2\nPlayer3"}, function(text)
+    storage.friendNameh = text
+  end)
+end)
+
+UI.Label("Potion ID")
+
+UI.TextEdit(storage.manauh or "238", function(widget, text)
+  storage.manauh = text
+end)
+
+UI.Label("Potion Use Delay")
+
+UI.TextEdit(storage.delaymana or "1000", function(widget, text)
+  storage.delaymana = text
+end)
+
+onTalk(function(name, level, mode, text, channelId, pos)
+  if name == player:getName() then return end
+  if mode ~= 1 then  return end
+
+  local friend = getPlayerByName(name)
+  if string.find(text, "pt") and friend then
+      g_game.partyInvite(friend:getId())
+  end
+end)
+
+UI.Separator()
+
+macro(4000, "Exeta Res",  function()
+  say("exeta res")
+end)
+macro(5000, "Odnowa VestiaBoots", function()
+  if getFeet():getId() == 9020 then
+    usewith(676, getFeet())
+    end
+end)
+
+UI.Separator()
+
+macro(100, "EnableSharedExp", function()
+  if player:getShield() == 4 then 
+      g_game.partyShareExperience(not player:isPartySharedExperienceActive())
+  end
+end)
+
+UI.Separator()
+UI.Label("------NICK GRACZA:------"):setColor("#00FF00")
+addTextEdit("friendName", storage.friendName, function(widget, text)
+storage.friendName = text
+end)
+onScreen= macro(100,"Stop WP - Lost friend", function()
+  local spectators = getSpectators(pos(), false)
+  for i, spec in pairs(spectators) do
+      if (spec:getName() == storage.friendName) then
+        if getDistanceBetween(pos(), spec:getPosition()) < 5 then
+          return CaveBot.setOn()
+        end
+      end
+  end
+  return CaveBot.setOff()
+end)
+UI.Separator()
+UI.Label("------MIN::------"):setColor("#00FF00")
+addTextEdit("minMonsters", storage.minMonsters, function(widget, text)
+storage.minMonsters = text
+end)
+UI.Label("------MAX::------"):setColor("#00FF00")
+addTextEdit("maxMonsters", storage.maxMonsters, function(widget, text)
+storage.maxMonsters = text
+end)
+macro(10, "Lure Monsters", function()
+  if getMonsters(6) >= tonumber(storage.maxMonsters) then
+    TargetBot.setOn()
+  else
+    if getMonsters(4) <= tonumber(storage.minMonsters) then
+    TargetBot.setOff()
+    end
+  end
+end)
+
+macro(10, "OFF TARGET <= 1 MOB", function()
+   if getMonsters(6) <= 1 then
+    TargetBot.setOff()
+    end
+  end)
+
+UI.Separator()
+UI.Separator()
+UI.Label("------------INNE------------"):setColor("#FFA500")
+
+
+
+-- HOTKEY TOGGLE CAVEBOT
+singlehotkey("delete", "SwitchCaveBot", function()
+  if CaveBot.isOff() or TargetBot.isOff() then
+      CaveBot.setOn()
+      TargetBot.setOn()
+  elseif CaveBot.isOn() or TargetBot.isOn() then
+      CaveBot.setOff()
+      TargetBot.setOff()
+  end
+end)
+
+local hardcodedItems = {3031, 3035}
+
+
+
+macro(100, "AntyPush" ,function()
+
+    local tile = g_map.getTile(player:getPosition())
+    if not tile then return end
+
+    local topItem = tile:getTopUseThing()
+    if topItem and topItem:isStackable() then
+        topItem = topItem:getId()
+    else
+        topItem = 0
+    end
+
+    local candidates = {}
+    for _, item in pairs(hardcodedItems) do
+        if item >= 100 and item ~= topItem and findItem(item) then
+            table.insert(candidates, item)
+        end
+    end
+
+    if #candidates == 0 then return end
+
+    local lastItem = storage.lastAntiPushItem or 1
+    if lastItem > #candidates then
+        lastItem = 1
+    end
+
+    local item = findItem(candidates[lastItem])
+    g_game.move(item, player:getPosition(), 2)
+    storage.lastAntiPushItem = lastItem + 1
+end)
+
+-- TRON EVENT
+local fragtext = "Wejscie na Tron Event zostalo otwarte! Czekamy na 6 graczy. Teleport do eventu jest na 1 pietrze depo!"
+local tronEvent = macro(100, "JoinTronEvent", function() end)
+
+onTextMessage(function(mode, text)
+  if tronEvent.isOff() then return end 
+
+  if text:lower():find(fragtext) then
+    walk(0)
+  end
+end)
+
+macro(10000, "ExpTokeny", function()
+  useWith(11455, player)
+end)
+
+macro(100, "Spam MR - Aczek", function()
+  local level = g_game.getLocalPlayer():getLevel()
+  local manarune = 3157
+  if (manapercent() <= 100) then
+    usewith (manarune, player)
+  end
+end)
+UI.Separator()
+UI.Separator()
+
+onTextMessage(function(mode,text)
+ if mode~=20 then return end
+  local itemName = {"Magician's Legs", "magician"}
+   if string.find(text, "Loot of") then
+    for _, lootName in pairs(itemName) do
+     if string.find(text, lootName) then
+    playAlarm()
+   end
+  end
+ end
+end)
+
+
+followName = "Name"
+if not storage[followName] then storage[followName] = { player = 'name'} end
+local toFollowPos = {}
+
+UI.Label("Auto Follow")
+
+followTE = UI.TextEdit(storage[followName].player or "name", function(widget, newText)
+    storage[followName].player = newText
+end)
+
+local followChange = macro(200, "Follow Change", function() end)
+
+local followMacro = macro(20, "Follow", function()
+    local target = getCreatureByName(storage[followName].player)
+    if target then
+        local tpos = target:getPosition()
+        toFollowPos[tpos.z] = tpos
+    end
+    
+    if player:isWalking() then
+        return
+    end
+    
+    local p = toFollowPos[posz()]
+    if not p then
+        return
+    end
+    
+    if autoWalk(p, 20, { ignoreNonPathable = true, precision = 1 }) then
+        delay(10)
+    end
+end)
+
+UI.Separator()
+UI.Separator()
+
+onPlayerPositionChange(function(newPos, oldPos)
+    if followChange:isOff() then return end
+    if g_game.isFollowing() then
+        local tfollow = g_game.getFollowingCreature()
+        if tfollow and tfollow:getName() ~= storage[followName].player then
+            followTE:setText(tfollow:getName())
+            storage[followName].player = tfollow:getName()
+        end
+    end
+end)
+
+onCreaturePositionChange(function(creature, newPos, oldPos)
+    if creature:getName() == storage[followName].player and newPos then
+        toFollowPos[newPos.z] = newPos
+    end
+end)
+
+--------------------------------------------------------------------------
+local panelName = "ssa"
+if not storage[panelName] then
+ storage[panelName] = {
+   checkBox1 = false,
+   checkBox2 = false
+ }
+end
+
+local ui = setupUI([[
+TestPanel < UIWidget
+  image-source: /images/ui/window_headless
+  image-border: 5
+  padding: 3
+  height: 45
+
+  CheckBox
+    id: check1
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-left: 5
+    margin-top: 5
+
+  UIWidget
+    anchors.top: parent.top
+    anchors.left: check1.right
+    !text: tr('ssa: 0-Spam, 1-LowMana')
+    margin-left: 5
+    margin-top: 4
+
+  CheckBox
+    id: check2
+    anchors.top: prev.bottom
+    anchors.left: parent.left
+    margin-left: 5
+    margin-top: 5
+    margin-bottom: 5
+
+  UIWidget
+    anchors.top: parent.top
+    anchors.left: check2.right
+    !text: tr('mr: 0-Spam, 1-LowMana')
+    margin-left: 5
+    margin-top: 20
+
+
+Panel
+  id: test
+  height: 35
+  padding: 3
+]])
+
+local label = UI.createWidget("TestPanel", ui.test)
+
+-----------------------------------------------------------------
+
+label.check1:setChecked(storage[panelName].checkBox1)
+label.check2:setChecked(storage[panelName].checkBox2)
+
+label.check1.onClick = function(widget)
+ storage[panelName].checkBox1 = not storage[panelName].checkBox1
+ widget:setChecked(storage[panelName].checkBox1)
+end
+
+label.check2.onClick = function(widget)
+ storage[panelName].checkBox2 = not storage[panelName].checkBox2
+ widget:setChecked(storage[panelName].checkBox2)
+end
+
+----------------------------------------------------------------
+
+macro(100, "SSA", function()
+  if manapercent() <= 30 and label.check1:isChecked() then
+    moveToSlot(3081, SlotNeck)
+    return true
+  elseif manapercent() > 50 and label.check1:isChecked() then
+    moveToSlot(3013, SlotNeck)
+  elseif not label.check1:isChecked() then
+    moveToSlot(3081, SlotNeck)
+    return true
+  end
+end)
+macro(100, "MRing", function()
+  if manapercent() <= 25 and label.check2:isChecked() then
+    moveToSlot(3048, SlotFinger)
+    return true
+  elseif manapercent() > 50 and label.check2:isChecked() then
+    moveToSlot(6539, SlotFinger)
+  elseif not label.check2:isChecked() then
+    moveToSlot(3048, SlotFinger)
+    return true
+  end
+end)
+
+-- Lista potworów do sprawdzania
+local targetMonsters = {"strong cannibal", "epic cannibal", "godly cannibal"}
+
+-- Id przedmiotów
+local ringBattle = 3048
+local ringDefault = 6539
+local amuletSsa = 3081
+local amuletJohns = 9802
+
+-- Nazwy plecaków, gdzie mają trafić przedmioty
+local amuletBpName = "backpack" -- Plecak na amulet
+local ringBpName = "backpack" -- Plecak na ring
+
+-- Funkcja do sprawdzania, czy na ekranie jest potwór z listy
+local function isMonsterNearby(monsterList)
+  for _, creature in ipairs(getSpectators() or {}) do
+    if creature and creature:isMonster() then
+      if table.contains(monsterList, creature:getName():lower()) then
+        return true
+      end
+    end
+  end
+  return false
+end
+
+-- Funkcja do liczenia liczby potworów w odległości <= 2 kratek od gracza
+local function countMonstersNearbyWithinDistance(maxDistance)
+  local count = 0
+  for _, creature in ipairs(getSpectators() or {}) do
+    if creature and creature:isMonster() and getDistanceBetween(pos(), creature:getPosition()) <= maxDistance then
+      count = count + 1
+    end
+  end
+  return count
+end
+
+local function equipRing(id)
+  if not getFinger() or getFinger():getId() ~= id then
+    moveToSlot(id, SlotFinger)
+  end
+end
+
+local function equipSsa()
+  local currentAmulet = getNeck()
+  if not currentAmulet or currentAmulet:getId() ~= amuletSsa then
+    local amulet = findItem(amuletSsa)
+    if amulet then
+      moveToSlot(amulet, SlotNeck)
+    end
+  end
+end
+
+local function equipJohns()
+  local currentAmulet = getNeck()
+  if not currentAmulet or currentAmulet:getId() ~= amuletJohns then
+    local amulet = findItem(amuletJohns)
+    if amulet then
+      moveToSlot(amulet, SlotNeck)
+    end
+  end
+end
+
+-- Makro do automatycznego zakładania i zdejmowania przedmiotów
+macro(100, "Auto Equip Amulet & Ring", function()
+  local monsterNearby = isMonsterNearby(targetMonsters)
+  local monsterCount = countMonstersNearbyWithinDistance(2) -- Sprawdzamy tylko w odległości <= 2 kratek
+
+  if monsterNearby or monsterCount > 6 then
+    equipSsa()
+    equipRing(ringBattle)
+  else
+    equipJohns()
+    equipRing(ringDefault)
+  end
+end)
+
+
+
+
+
+
+
+
+--
+local ui = setupUI([[
+Panel
+  width: 300
+  height:300
+
+  Label
+    id: targetLabel
+    x: 205          
+    y: 110
+    font: verdana-11px-rounded
+
+  Label
+    id: caveLabel
+    x: 205
+    y: 125
+    font: verdana-11px-rounded    
+]], g_ui.getRootWidget())
+
+local function getTargetBotStatus()
+  return TargetBot.isOn() and "ON" or TargetBot.isOff() and "OFF"
+end
+
+local function getCaveBotStatus()
+  return CaveBot.isOn() and "ON" or CaveBot.isOff() and "OFF"
+end
+
+local function getColorFromStatus(status)
+  return status == "ON" and "green" or status == "OFF" and "red"
+end
+
+macro(100, function()
+  local targetStatus = getTargetBotStatus()
+  local caveStatus = getCaveBotStatus()
+  local targetColor = getColorFromStatus(targetStatus)
+  local caveColor = getColorFromStatus(caveStatus)
+  
+  ui.targetLabel:setColoredText({"Target: ", "white", targetStatus, targetColor})
+  ui.caveLabel:setColoredText({"Cavebot: ",  "white", caveStatus, caveColor})
+end)
+
+
+
+setDefaultTab("Main")
+local mkPanelname = "monsterKill"
+if not storage[mkPanelname] then storage[mkPanelname] = { min = false, lastKills = 0 } end
+
+local monsterKill = setupUI([[
+Panel
+  margin-top:2
+  height: 135
+  Button
+    id: resetList
+    anchors.left: parent.left
+    anchors.top: parent.top
+    width: 20
+    height: 17
+    margin-top: 2
+    margin-left: 3
+    text: !
+    color: red
+    tooltip: Reset Data
+  Button
+    id: showList
+    anchors.right: parent.right
+    anchors.top: parent.top
+    width: 20
+    height: 17
+    margin-top: 2
+    margin-right: 3
+    text: -
+    color: red
+
+  Label
+    id: title
+    text: Monster Kills
+    text-align: center
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    height: 20
+
+  Label
+    id: lastKillLabel
+    text: Last 10 min kills: 0
+    text-align: center
+    anchors.top: title.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    height: 15
+    margin-top: 3
+    color: yellow
+
+  ScrollablePanel
+    id: content
+    image-source: /images/ui/menubox
+    image-border: 4
+    image-border-top: 17
+    anchors.top: lastKillLabel.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: 5
+    height: 88
+    padding: 3
+    vertical-scrollbar: mkScroll
+    layout:
+      type: verticalBox
+
+  BotSmallScrollBar
+    id: mkScroll
+    anchors.top: content.top
+    anchors.bottom: content.bottom
+    anchors.right: content.right
+    margin-top: 2
+    margin-bottom: 5
+    margin-right: 5
+]], parent)
+monsterKill:setId(mkPanelname)
+
+killList = {}
+local lbls = {}
+
+local function toggleWin(load)
+  if load then
+    monsterKill:setHeight(40)
+    monsterKill.showList:setText("+")
+    monsterKill.showList:setColor("green")
+  else
+    monsterKill:setHeight(135)
+    monsterKill.showList:setText("-")
+    monsterKill.showList:setColor("red")
+  end
+end
+
+function refreshMK()
+  if #lbls > 0 and (#killList == #lbls) then
+    local i = 1
+    for k, v in pairs(killList) do
+      lbls[i].name:setText(k .. ':')
+      lbls[i].count:setText("x"..v)
+      i = i + 1
+    end
+  else
+    for _, child in pairs(monsterKill.content:getChildren()) do
+      child:destroy()
+    end
+    for k, v in pairs(killList) do
+      lbls[k] = g_ui.loadUIFromString([[
+Panel
+  height: 16
+  margin-left: 2
+
+  Label
+    id: name
+    text:
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-top: 2
+    text-auto-resize: true
+    font: verdana-11px-bold
+
+  Label
+    id: count
+    text:
+    anchors.top: name.top
+    anchors.right: parent.right
+    margin-right: 15
+    text-auto-resize: true
+    color: orange
+    font: verdana-11px-bold
+
+]], monsterKill.content)
+      if lbls[k] then
+        lbls[k].name:setText(k .. ':')
+        lbls[k].count:setText("x"..v)
+      end
+    end
+  end
+end
+refreshMK()
+toggleWin(storage[mkPanelname].min)
+
+monsterKill.showList.onClick = function(widget)
+  storage[mkPanelname].min = (monsterKill:getHeight() == 135)
+  toggleWin(storage[mkPanelname].min)
+end
+
+-- Funkcja do resetowania licznika i zapisywania ostatniej sumy
+local function resetCounter()
+  local totalKills = 0
+  for _, count in pairs(killList) do
+    totalKills = totalKills + count
+  end
+  storage[mkPanelname].lastKills = totalKills -- Zapisujemy sume
+  monsterKill.lastKillLabel:setText("Last 10 min kills: " .. totalKills)
+  killList = {}
+  refreshMK()
+  warn("Licznik zresetowany. Zabite w ostatnich 10 minutach: " .. totalKills)
+end
+
+monsterKill.resetList.onClick = function(widget)
+  resetCounter()
+end
+
+-- Automatyczne resetowanie co 10 minut (600 sekund)
+macro(600000, "Reset Monster Kill Counter", function()
+  resetCounter()
+end)
+
+function checkKill(mode, text)
+  local mobName = nil
+  local reg = { "Loot of a (.*):", "Loot of an (.*):", "Loot of the (.*):","Loot of (.*):" }
+  for x = 1, #reg do
+    _, _, mobName = string.find(text, reg[x])
+    if mobName then
+      if killList[mobName] then
+        killList[mobName] = killList[mobName] + 1
+      else
+        killList[mobName] = 1
+      end
+      refreshMK()
+      break
+    end
+  end
+end
+
+onTalk(function(name, level, mode, text, channelId, pos)
+  if channelId == 11 then checkKill(mode, text) end
+end)
+
+onTextMessage(function(mode, text)
+  checkKill(mode, text)
+end)
+
+function getKills(mobName)
+  if killList[mobName] then
+    return killList[mobName]
+  end
+  return nil
+end
+
+function getDumpAllKills()
+  for k, v in pairs(killList) do
+    warn(v .. "x " .. k)
+  end
+end
+
+
+
+UI.Separator()
+
+UI.Label("-------COMBO LEADER-------")
+setDefaultTab("Main")
+
+local panelName = "CL"
+if not storage[panelName] then
+    storage[panelName] = {
+        checkBoxSD = false,
+        checkBoxSpell = false
+    }
+end
+
+local ui = setupUI([[
+CLPANEL < UIWidget
+  image-source: /images/ui/window_headless
+  image-border: 5
+  padding: 3
+  height: 45
+
+  CheckBox
+    id: checkSD
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-left: 5
+    margin-top: 5
+
+  UIWidget
+    anchors.top: parent.top
+    anchors.left: checkSD.right
+    !text: tr('SD')
+    margin-left: 5
+    margin-top: 4
+
+  CheckBox
+    id: checkSpell
+    anchors.top: prev.bottom
+    anchors.left: parent.left
+    margin-left: 5
+    margin-top: 5
+    margin-bottom: 5
+
+  UIWidget
+    anchors.top: parent.top
+    anchors.left: checkSpell.right
+    !text: tr('SPELL')
+    margin-left: 5
+    margin-top: 20
+
+Panel
+  id: CL
+  height: 35
+  padding: 3
+]])
+
+local label = UI.createWidget("CLPANEL", ui.CL)
+
+UI.Separator()
+UI.Label("Spell:"):setColor("#FFA500")
+addTextEdit("SpellCL", storage.spellCL, function(widget, text)
+  storage.spellCL = text
+  end)
+
+  UI.Separator()
+-- Synchronizacja z przechowywanymi wartoociami
+label:getChildById("checkSD"):setChecked(storage[panelName].checkBoxSD)
+label:getChildById("checkSpell"):setChecked(storage[panelName].checkBoxSpell)
+
+-- Obs3uga zdarzen dla checkboxów
+label:getChildById("checkSD").onClick = function(widget)
+    local state = not widget:isChecked()
+    widget:setChecked(state)
+    storage[panelName].checkBoxSD = state
+    if state then
+        label:getChildById("checkSpell"):setChecked(false)
+        storage[panelName].checkBoxSpell = false
+    end
+end
+
+label:getChildById("checkSpell").onClick = function(widget)
+    local state = not widget:isChecked()
+    widget:setChecked(state)
+    storage[panelName].checkBoxSpell = state
+    if state then
+        label:getChildById("checkSD"):setChecked(false)
+        storage[panelName].checkBoxSD = false
+    end
+end
+
+UI.Label("Leader:"):setColor("#c934eb")
+addTextEdit("leader", storage.comboLeader or "Player name", function(widget, text)
+    storage.comboLeader = text
+end)
+addSeparator()
+
+-- Makro i logika
+local m = macro(1000, "Enable combo", function() end)
+
+onMissle(function(missle)
+    if m.isOff() then return end
+    local src = missle:getSource()
+    if src.z ~= posz() then return end
+
+    local from = g_map.getTile(src)
+    local to = g_map.getTile(missle:getDestination())
+    if not from or not to then return end
+
+    local fromCreatures = from:getCreatures()
+    local toCreatures = to:getCreatures()
+    if #fromCreatures ~= 1 or #toCreatures ~= 1 then
+        return
+    end
+
+    local c1 = fromCreatures[1]
+    local t1 = toCreatures[1]
+    if c1:getName():lower() == storage.comboLeader:lower() then
+        if label:getChildById("checkSD"):isChecked() then
+          if not g_game.isAttacking() then 
+            g_game.attack(t1)
+          end
+            useWith(3155, t1)
+        elseif label:getChildById("checkSpell"):isChecked() then
+          if not g_game.isAttacking() then 
+            g_game.attack(t1)
+          end
+            say(storage.spellCL)
+        end
+    end
+end)
+
+
+

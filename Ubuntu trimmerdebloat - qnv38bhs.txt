@@ -1,0 +1,79 @@
+#!/bin/bash
+
+# Function to ask for confirmation before removing software
+confirm_removal() {
+    read -p "Are you sure you want to remove $1? (y/n): " confirm
+    if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+        sudo apt-get remove --purge -y $1
+        echo "$1 removed successfully."
+    else
+        echo "$1 was not removed."
+    fi
+}
+
+# Update and upgrade the system
+sudo apt update && sudo apt upgrade -y
+
+# Software to be removed
+software_list=(
+    "rhythmbox"
+    "gnome-mines"
+    "gnome-sudoku"
+    "gnome-weather"
+    "gnome-calendar"
+    "gnome-contacts"
+    "gnome-maps"
+    "gnome-clocks"
+    "gnome-photos"
+    "gnome-music"
+    "gnome-shell-extension-ubuntu-dock"
+    "gnome-software"
+    "libreoffice*"
+    "thunderbird"
+    "transmission-gtk"
+    "ubuntu-docs"
+    "ubuntu-release-upgrader-core"
+    "usb-creator-gtk"
+)
+
+# Prompt user to choose which software to remove
+echo "List of software to remove:"
+for software in "${software_list[@]}"; do
+    confirm_removal "$software"
+done
+
+# Remove snap packages
+read -p "Do you want to remove Snap packages? (snapd) (y/n): " snap_confirm
+if [[ "$snap_confirm" == "y" || "$snap_confirm" == "Y" ]]; then
+    sudo apt-get purge -y snapd
+    sudo rm -rf /var/cache/snapd/
+    echo "Snap packages removed."
+else
+    echo "Snap packages not removed."
+fi
+
+# Disable unnecessary services
+services_to_disable=(
+    "snapd"
+    "ModemManager"
+    "bluetooth"
+)
+
+echo "Services to disable:"
+for service in "${services_to_disable[@]}"; do
+    read -p "Do you want to disable $service? (y/n): " service_confirm
+    if [[ "$service_confirm" == "y" || "$service_confirm" == "Y" ]]; then
+        sudo systemctl disable --now $service
+        echo "$service disabled."
+    else
+        echo "$service was not disabled."
+    fi
+done
+
+# Clean up residual files and dependencies
+sudo apt-get autoremove --purge -y
+sudo apt-get clean
+
+# Reboot the system to apply changes
+echo "Debloating complete. Rebooting the system..."
+sudo reboot

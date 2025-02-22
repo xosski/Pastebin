@@ -1,0 +1,122 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/string.h>
+
+// Declare module parameters with explicit parameter types
+static int input_value = 0;
+static char *input_string = NULL;
+
+// Use module_param_string for string parameter to ensure proper handling
+module_param(input_value, int, 0644);
+MODULE_PARM_DESC(input_value, "An integer input value");
+
+module_param(input_string, charp, 0644);
+MODULE_PARM_DESC(input_string, "A string input parameter");
+
+// Intentionally declare a NULL pointer to demonstrate vulnerability
+static int *dangerous_ptr = NULL;
+
+// Module initialization function with user input and null pointer dereference
+static int __init vulnerable_init(void)
+{
+    // Print out the user-supplied input values with explicit NULL checks
+    printk(KERN_INFO "Vulnerable Kernel Module Loaded\n");
+    
+    // Safe integer parameter handling
+    printk(KERN_INFO "Input Value: %d\n", input_value);
+    
+    // Safe string parameter handling
+    if (input_string) {
+        printk(KERN_INFO "Input String: %s\n", input_string);
+    } else {
+        printk(KERN_WARNING "No string input provided\n");
+    }
+
+    // VULNERABILITY: Conditional null pointer dereference
+    // This will cause a kernel panic if the conditions are met
+    if (input_value > 10) {
+        printk(KERN_ALERT "Attempting dangerous pointer dereference\n");
+        
+        // This will cause a kernel panic if input_value > 10
+        // Dereferencing the NULL pointer
+        if (dangerous_ptr) {
+            *dangerous_ptr = input_value;  // Deliberate null pointer dereference
+        } else {
+            printk(KERN_ERR "Error: dangerous_ptr is NULL\n");
+        }
+    }
+
+    return 0;
+}
+
+// Module cleanup function
+static void __exit vulnerable_exit(void)
+{
+    printk(KERN_INFO "Vulnerable Kernel Module Unloaded\n");
+}
+
+// Macro declarations for kernel module
+module_init(vulnerable_init);
+module_exit(vulnerable_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Security Research");
+MODULE_DESCRIPTION("Kernel Module with User Input and Null Pointer Dereference");
+
+////////
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/string.h>
+#include <linux/slab.h>
+
+// Module parameters for user input
+static char *input_buffer = NULL;
+module_param(input_buffer, charp, 0644);
+MODULE_PARM_DESC(input_buffer, "Input buffer to demonstrate stack overflow");
+
+// Vulnerable function with fixed-size stack buffer
+static void vulnerable_copy_function(void)
+{
+    // VULNERABILITY: Fixed-size stack buffer
+    // This buffer is allocated on the kernel stack
+    char local_buffer[64];
+
+    // Unsafe copy without length checking
+    // This can cause stack overflow if input is longer than buffer
+    if (input_buffer) {
+        printk(KERN_INFO "Attempting to copy input: %s\n", input_buffer);
+
+        // DANGEROUS: Potential stack overflow
+        // strcpy does not check buffer bounds, which can overflow the buffer
+        strcpy(local_buffer, input_buffer); // This is where the overflow can happen
+
+        printk(KERN_INFO "Copied buffer: %s\n", local_buffer); // Will print corrupted data if overflow occurs
+    }
+}
+
+// Module initialization function
+static int __init stack_overflow_init(void)
+{
+    printk(KERN_INFO "Stack Overflow Vulnerability Module Loaded\n");
+
+    // Call the vulnerable function
+    vulnerable_copy_function();
+
+    return 0;
+}
+
+// Module cleanup function
+static void __exit stack_overflow_exit(void)
+{
+    printk(KERN_INFO "Stack Overflow Module Unloaded\n");
+}
+
+// Macro declarations for kernel module
+module_init(stack_overflow_init);
+module_exit(stack_overflow_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Security Research");
+MODULE_DESCRIPTION("Kernel Module Demonstrating Stack Overflow Vulnerability");

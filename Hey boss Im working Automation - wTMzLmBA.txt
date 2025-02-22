@@ -1,0 +1,146 @@
+const robot = require("robotjs");
+const clip = require('clipboardy');
+const words = [
+    // Your predefined list of words...
+    "React", "JavaScript", "Frontend", "React Hooks", //... etc
+];
+
+let running = true;  // Flag to control the infinite loop
+
+// Start the bot
+function startBot() {
+    if (!running) return;  // Stop the bot if the flag is false
+    
+    setTimeout(() => {
+        try {
+            shiftApp();
+            searchInGoogle(() => {
+                setTimeout(() => {
+                    shiftTab();
+                    setTimeout(() => {
+                        shiftApp();
+                        setTimeout(() => {
+                            shiftTab();
+                            robot.keyTap("enter");
+                            keyTabRepeat("down", 100, () => {
+                                startBot(); // Recursively restart bot
+                            });
+                        }, 15000);
+                    }, 25000);
+                }, 30000);
+            });
+        } catch (error) {
+            console.error('Error in startBot:', error);
+        }
+    }, 5000);
+}
+
+// Close current browser tab
+function closeTab() {
+    try {
+        robot.keyTap("w", ["control"]);
+    } catch (error) {
+        console.error('Error closing tab:', error);
+    }
+}
+
+// Switch application using Alt + Tab
+function shiftApp() {
+    try {
+        robot.keyTap("tab", ["alt"]);
+        robot.keyTap("enter");
+    } catch (error) {
+        console.error('Error shifting application:', error);
+    }
+}
+
+// Switch tabs using Control + Tab
+function shiftTab() {
+    try {
+        robot.keyTap("tab", ["control"]);
+    } catch (error) {
+        console.error('Error shifting tab:', error);
+    }
+}
+
+// Perform a Google search using a random word from the array
+function searchInGoogle(callback) {
+    setTimeout(() => {
+        const len = words.length - 1;
+        const randomIndex = Math.floor(Math.random() * len);
+        const word = words[randomIndex];
+
+        try {
+            setTimeout(() => {
+                robot.keyTap("t", ["control"]); // Open new tab
+            }, 1000);
+
+            setTimeout(() => {
+                if (word.indexOf("http") >= 0) {
+                    clip.writeSync(word);
+                    robot.keyTap("v", ["control"]); // Paste from clipboard
+                } else {
+                    typeString(word); // Type the word
+                }
+
+                robot.keyTap("enter"); // Press enter
+
+                setTimeout(() => {
+                    keyTabRepeat("down", 30, () => {
+                        // Add any additional logic you want to repeat
+                        robot.mouseClick();
+                        callback(); // Execute callback after interaction
+                    });
+                }, 2000);
+            }, 1000);
+        } catch (error) {
+            console.error('Error in searchInGoogle:', error);
+        }
+    }, 5000);
+}
+
+// Simulate pressing a key multiple times
+function keyTabRepeat(key, times, callback) {
+    try {
+        for (let i = 0; i < times; i++) {
+            robot.keyTap(key);
+        }
+        callback();  // Execute callback after the loop
+    } catch (error) {
+        console.error(`Error in keyTabRepeat (key: ${key}, times: ${times}):`, error);
+    }
+}
+
+// Type a string using robotjs
+function typeString(str) {
+    try {
+        for (let i = 0; i < str.length; i++) {
+            robot.keyTap(str[i]);
+        }
+    } catch (error) {
+        console.error('Error typing string:', error);
+    }
+}
+
+// Stop the bot from running
+function stopBot() {
+    running = false; // Set the flag to stop the bot
+    console.log("Bot has been stopped.");
+}
+
+// Optional: Introduce a key press event to stop the bot manually (for example: pressing 'Esc')
+function listenForStop() {
+    setInterval(() => {
+        // Check for a specific key press to stop the bot (Esc key in this case)
+        const key = robot.keyTap('esc');
+        if (key) {
+            stopBot(); // Stop the bot if 'Esc' is pressed
+        }
+    }, 1000); // Check every second for key press
+}
+
+// Start listening for stop event
+listenForStop();
+
+// Start the bot when the script is run
+startBot();

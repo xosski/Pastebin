@@ -1,0 +1,141 @@
+#!/bin/bash
+
+# Clear screen and display welcome banner
+clear
+cat << "EOF"
+  \  |        \  |    \     _ \   __ )             |        ____|                       
+   \ |       |\/ |   _ \   |   |  __ \   __| |   | __|  _ \ |    _ \   __| __|  _ \  __|
+ |\  |_____| |   |  ___ \  ___/   |   | |    |   | |    __/ __| (   | |   (     __/ |   
+_| \_|      _|  _|_/    _\_|     ____/ _|   \__,_|\__|\___|_|  \___/ _|  \___|\___|_|   V. - 0.1
+
+# Require root privileges
+if [ "$(id -u)" -ne 0 ]; then
+    echo -e "\n[!] This script must be executed with root privileges.\n"
+    exit 1
+fi
+
+# Create a logs directory
+LOG_DIR="./logs"
+mkdir -p "$LOG_DIR"
+
+# Menu Display
+while true; do
+    clear
+    echo -e "\nChoose an Option:"
+    echo -e "1) FTP Brute-Force\n2) AFP Brute-Force\n3) Telnet Brute-Force\n4) SMTP Brute-Force"
+    echo -e "5) AJP Brute-Force\n6) Cassandra Brute-Force\n7) Citrix Brute-Force\n8) CVS Brute-Force"
+    echo -e "9) distcc CVE Scan\n10) DNS Brute-Force\n11) HTTP Brute-Force\n12) HTTP Form Brute-Force"
+    echo -e "13) Vulnerability Scan\n14) Service Detection\n15) Batch Target Scan\n0) Exit"
+    read -p "Enter Your Choice: " choice
+
+    case $choice in
+    0)
+        echo "Exiting script. Goodbye!"
+        break
+        ;;
+    1)
+        read -p "Enter Target: " target
+        log_file="$LOG_DIR/ftp_brute_$(date +%F_%T).log"
+        nmap -p 21 --script ftp-brute "$target" -d -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    2)
+        read -p "Enter Target: " target
+        log_file="$LOG_DIR/afp_brute_$(date +%F_%T).log"
+        nmap -p 548 --script afp-bruteforce "$target" -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    3)
+        read -p "Enter Target: " target
+        log_file="$LOG_DIR/telnet_brute_$(date +%F_%T).log"
+        nmap -p 23 --script telnet-brute "$target" -d -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    4)
+        read -p "Enter Target: " target
+        log_file="$LOG_DIR/smtp_brute_$(date +%F_%T).log"
+        nmap -p 25 --script smtp-brute "$target" -d -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    5)
+        read -p "Enter Target: " target
+        log_file="$LOG_DIR/ajp_brute_$(date +%F_%T).log"
+        nmap -p 8009 --script ajp-brute "$target" -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    6)
+        read -p "Enter Target: " target
+        log_file="$LOG_DIR/cassandra_brute_$(date +%F_%T).log"
+        nmap -p 9160 --script cassandra-brute "$target" -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    7)
+        read -p "Enter UserList File (userdb): " userdb
+        read -p "Enter PasswordList File (passdb): " passdb
+        read -p "Enter Domain Name (ntdomain): " ntdomain
+        read -p "Enter Host: " host
+        log_file="$LOG_DIR/citrix_brute_$(date +%F_%T).log"
+        nmap --script citrix-brute-xml --script-args userdb="$userdb",passdb="$passdb",ntdomain="$ntdomain" -p 80,443,8080 "$host" -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    8)
+        read -p "Enter Host: " host
+        log_file="$LOG_DIR/cvs_brute_$(date +%F_%T).log"
+        nmap -p 2401 --script cvs-brute "$host" -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    9)
+        read -p "Enter Target: " target
+        log_file="$LOG_DIR/distcc_cve_$(date +%F_%T).log"
+        nmap -p 3632 "$target" --script distcc-exec --script-args "distcc-exec.cmd='id'" -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    10)
+        read -p "Enter Target: " target
+        log_file="$LOG_DIR/dns_brute_$(date +%F_%T).log"
+        nmap --script dns-brute "$target" -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    11)
+        read -p "Enter Host: " host
+        log_file="$LOG_DIR/http_brute_$(date +%F_%T).log"
+        nmap --script http-brute -p 80 "$host" -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    12)
+        read -p "Enter Host: " host
+        log_file="$LOG_DIR/http_form_brute_$(date +%F_%T).log"
+        nmap --script http-form-brute -p 80 "$host" -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    13)
+        read -p "Enter Target: " target
+        log_file="$LOG_DIR/vulnerability_scan_$(date +%F_%T).log"
+        nmap --script vuln "$target" -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    14)
+        read -p "Enter Target: " target
+        log_file="$LOG_DIR/service_detection_$(date +%F_%T).log"
+        nmap -sV "$target" -oN "$log_file"
+        echo "Results saved to $log_file"
+        ;;
+    15)
+        read -p "Enter File Containing Targets (one per line): " target_file
+        if [ -f "$target_file" ]; then
+            log_file="$LOG_DIR/batch_scan_$(date +%F_%T).log"
+            while IFS= read -r target; do
+                echo "Scanning $target..."
+                nmap -p 21 --script ftp-brute "$target" >>"$log_file"
+            done <"$target_file"
+            echo "Batch scan completed. Results saved to $log_file"
+        else
+            echo "File not found."
+        fi
+        ;;
+    *)
+        echo "Invalid Option. Try Again."
+        ;;
+    esac
+    read -p "Press Enter to continue..."
+done

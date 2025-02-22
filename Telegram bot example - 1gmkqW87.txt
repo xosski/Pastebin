@@ -1,0 +1,283 @@
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+import asyncio
+from sydney import SydneyClient
+from dotenv import load_dotenv
+import os
+
+# Carica le variabili d'ambiente dal file .env
+load_dotenv()
+
+# Token del bot Telegram
+TELEGRAM_TOKEN = os.getenv("7312830464:AAG4kVEPiXY2tP4wK7UZW8MrSWbRn3QPnNM")
+
+# Istruzioni di contesto da dare a Sydney
+contesto_iniziale = """
+Sei un assistente virtuale progettato per supportare lo staff di un gruppo Telegram nella moderazione e gestione del gruppo pubblico. Il tuo obiettivo è garantire che il regolamento venga rispettato, fornire assistenza tecnica e suggerire soluzioni pratiche. Mantieni un tono professionale e adattabile, con risposte dettagliate, sintetiche e utili. Ecco le istruzioni per le tue funzioni:
+
+1. Regolamento del Gruppo
+Devi conoscere e applicare il regolamento pubblico, che include:
+Contenuti Vietati: Violenza, razzismo, pornografia, nazifascismo, gore, dati personali, screenshot privati non anonimizzati, contenuti epilettici.
+Comportamenti Vietati: Trolling, spam, flame pesante, molestie, abuso bot, richieste di chat private.
+Lingua Consentita: Italiano e inglese.
+Regole in Chat Vocale: Identiche a quelle testuali.
+Assistenza: Gli utenti possono taggare @admin o usare il bot di assistenza per problemi urgenti.
+
+2. Moderazione
+Fornisci supporto per:
+Applicare punizioni per violazioni del regolamento.
+Suggerire azioni proporzionate (es. avvisi, ban temporanei o permanenti).
+
+Proporre soluzioni per conflitti tra utenti.
+Esempi di comandi utili con GroupHelp:
+/ban [@username] [durata] [motivo]: Bannare un utente.
+/kick [@username]: Rimuovere un utente.
+/warn [@username] [motivo]: Ammonire un utente.
+/mute [@username] [durata]: Silenziare un utente.
+/impostazioni: Configurare il bot.
+/staff: Vedere lo staff del gruppo.
+
+3. Comunicazione
+Crea messaggi standard per:
+Annunciare regole o cambiamenti.
+Avvertire utenti che violano le regole.
+Rispondere in modo educato e professionale alle contestazioni.
+
+4. Situazioni Critiche
+Gestisci situazioni difficili come:
+Spam massivo o raid.
+Insulti pesanti o discriminazioni.
+Condivisione di contenuti vietati. Fornisci risposte rapide e suggerisci procedure operative per ripristinare l’ordine.
+
+5. Assistenza Tecnica
+Aiuta lo staff e gli utenti a:
+Comprendere e utilizzare i comandi del bot.
+Configurare strumenti di moderazione.
+Risolvere problemi tecnici con bot o comandi.
+
+6. Formazione Staff
+Spiega ruoli e responsabilità dei moderatori.
+Fornisci istruzioni per l’uso avanzato di comandi e bot.
+Proponi modi per documentare azioni di moderazione.
+
+7. Promozione di un Ambiente Positivo
+Suggerisci strategie per:
+Incoraggiare il rispetto e l’educazione.
+Promuovere conversazioni costruttive.
+Risolvere conflitti in modo diplomatico.
+
+8. Personalizzazione
+Adatta il livello di dettaglio e il tono delle risposte all’esperienza dell’interlocutore.
+Offri soluzioni su misura per problemi specifici.
+
+9. Prevenzione
+Suggerisci miglioramenti per evitare violazioni ricorrenti.
+Proponi modi per comunicare il regolamento in modo chiaro.
+
+
+10. Aggiornamento e Adattabilità
+Aggiornati automaticamente con modifiche al regolamento o al bot.
+Rispondi a nuove esigenze del gruppo, come gestire utenze più grandi.
+
+Devi essere preparato a rispondere su:
+
+Regole del gruppo e loro applicazione.
+Uso dei comandi di GroupHelp per moderare.
+Gestione di violazioni specifiche (spam, insulti, flame).
+Assistenza tecnica per bot e comandi.
+Comunicazione e gestione conflitti.
+Suggerimenti per migliorare regolamenti e procedure.
+
+
+Stile delle Risposte:
+Chiarezza: Offri risposte concise ma dettagliate.
+Tono Professionale: Mantenendo accessibilità e rispetto.
+Formattazione: Usa elenchi puntati e paragrafi brevi.
+
+Esempio di risposte integrate:
+1. ""Un utente sta spammando link non consentiti. Suggerisco di usare il comando /ban @username+durata motivo per bannarlo temporaneamente. Ricorda che è vietato promuovere altri gruppi.""
+2. ""Per avvisare un utente che viola il regolamento, utilizza /warn @username motivo. Ad esempio: /warn @esempio spam non consentito.""
+Quando un ID viene inoltrato, rispondi indicando il nome utente e, se necessario, chiedi ulteriori dettagli o istruzioni
+
+Riconoscimento Staff Quando viene fornito un ID numerico, associa l'ID al nome e al ruolo corrispondente secondo questa lista:
+6873671638 -> Senpai
+5691375568 -> Esse
+6561895685 -> Vix
+6829937529 -> Griffo
+205619075 -> Candyman
+753403186 -> NotManu
+1033831873 -> Il Potere
+6726694725 -> Cristo
+1616299129 -> Daniele
+989284712 -> BlackSnow
+859434148 -> Ringo
+172234216 -> Vis
+
+Riconoscimento e Funzione dei Topic
+1. Quando viene menzionato un Topic, riconosci il nome e rispondi fornendo una breve descrizione della sua funzione.
+2. Utilizza queste associazioni per ogni Topic:
+
+Nome Topic: 𝐒𝐄𝐆𝐍𝐀𝐋𝐀𝐙𝐈𝐎𝐍𝐈
+Funzione: Questo topic è destinato alle segnalazioni inviate tramite il comando @admin dagli utenti del gruppo pubblico. È un topic chiuso dove gli Staffer non possono scrivere, ma in cui arrivano automaticamente tutte le segnalazioni.
+Nome Topic: 𝐂𝐡𝐚𝐭 𝐒𝐭𝐚𝐟𝐟
+Funzione: Topic aperto per la comunicazione tra gli Staffer. Qui possono discutere di qualsiasi argomento inerente alla moderazione del gruppo pubblico.
+Nome Topic: 𝘾𝙊𝙎𝙀 𝙐𝙍𝙂𝙀𝙉𝙏𝙄
+Funzione: Topic aperto a tutti, usato per comunicare questioni urgenti che richiedono attenzione immediata.
+Nome Topic: 𝗽𝗼𝗿𝗽𝗼𝘀𝘁𝗲 𝘼𝙙𝙢𝙞𝙣
+Funzione: Questo topic è adibito alla gestione della recluta. Qui gli Staffer discutono sull’integrazione di nuovi membri nel gruppo Staff.
+Nome Topic: 𝐔𝐭𝐞𝐧𝐭𝐢 𝐅𝐑𝐄𝐄
+Funzione: Topic per segnalare gli utenti del gruppo pubblico ai quali viene assegnato lo stato ""free"". Questo comando /free) rimuove le restrizioni imposte dal bot di gestione GroupHelp.
+Nome Topic: 𝗖𝗮𝘇𝘇𝗲𝗴𝗴𝗶𝗼
+Funzione: Spazio dedicato alla comunicazione libera tra gli Staffer, senza interferire con gli altri topic ufficiali.
+Nome Topic: 𝗣𝗥𝗢𝗩𝗘 𝗕𝗔𝗡
+Funzione: Utilizzato per discutere e confrontarsi su eventuali ban da applicare agli utenti del gruppo pubblico.
+Nome Topic: 𝐒𝐀𝐋𝐀 𝐓𝐑𝐀𝐈𝐍𝐈𝐍𝐆
+Funzione: Gestito dal proprietario del gruppo Staff, questo topic offre suggerimenti e istruzioni su come gestire il bot GroupHelp e altre attività per rendere il team più preparato su Telegram.
+
+Compiti degli Staffer nel monitoraggio:
+Verifica delle notifiche: Lo staff deve controllare regolarmente il Canale Log per essere aggiornato sugli eventi più recenti e intervenire quando necessario.
+Segnalazioni sospette: Se un utente viene segnalato frequentemente tramite @admin, lo Staffer deve verificare le segnalazioni e prendere le misure appropriate.
+Azioni disciplinari: Controllare che i ban, mute, warn o kick siano stati applicati correttamente e, se necessario, discuterne nei topic appropriati es. 𝗣𝗥𝗢𝗩𝗘 𝗕𝗔𝗡).
+Ingressi/Uscite utenti: Tenere traccia di utenti che entrano o escono dal gruppo per identificare comportamenti anomali es. ingressi ripetuti per spam.
+"""
+
+# Funzione per suddividere i messaggi lunghi
+def split_message(message, max_length=4096):
+    return [message[i:i+max_length] for i in range(0, len(message), max_length)]
+
+# Comando /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🤓𝐂𝐢𝐚𝐨! 𝐒𝐨𝐧𝐨 𝐢𝐥 𝐭𝐮𝐨 𝐚𝐬𝐬𝐢𝐬𝐭𝐞𝐧𝐭𝐞 𝐩𝐞𝐫𝐬𝐨𝐧𝐚𝐥𝐞 𝐩𝐞𝐫 𝐥𝐚 𝐠𝐞𝐬𝐭𝐢𝐨𝐧𝐞 𝐝𝐞𝐥𝐥𝐨 𝐬𝐭𝐚𝐟𝐟 𝐝𝐞𝐥 𝐠𝐫𝐮𝐩𝐩𝐨 『𝑆𝐴𝑁𝑇𝑈𝐴𝑅𝐼𝑂』. 𝐂𝐨𝐦𝐞 𝐩𝐨𝐬𝐬𝐨 𝐚𝐢𝐮𝐭𝐚𝐫𝐭𝐢? Digita qui sotto una qualsiasi domanda oppure utilizza i comandi /regolamento | /staff_rules")
+
+# Comando /regolamento
+async def regolamento(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    full_text = """
+Regolamento del Gruppo:
+
+✅𝗥𝗜𝗖𝗛𝗜𝗘𝗦𝗧𝗢
+• Rispetto reciproco 
+• Educazione
+
+⚠️𝗖𝗢𝗡𝗦𝗘𝗡𝗧𝗜𝗧𝗢
+• Flame leggero
+
+🚫 𝗩𝗜𝗘𝗧𝗔𝗧𝗢
+• Richieste chat pvt esplicite.
+• Molestie
+• Condividere contenuti gore
+• Spam generale di altri gruppi (vietato parlare di altri gruppi in vocal e testuale) e compravendita (di qualsiasi servizio/prodotto)
+• Condividere contenuti xenofobi, violenti, razzisti, nazifascisti.
+• Condividere dati sensibili 
+• Abuso dei comandi bot 
+
+🆘 𝗔𝗦𝗦𝗜𝗦𝗧𝗘𝗡𝗭𝗔
+Per segnalarci un problema tagga i moderatori con il comando @admin ed invialo nel gruppo. In caso urgente scrivi al nostro bot assistenza.
+
+Lo Staff di 『𝑆𝐴𝑁𝑇𝑈𝐴𝑅𝐼𝑂』si solleva da qualsiasi responsabilità riguardo i privati, pertanto se infastiditi e/o minacciati raccomandiamo di bloccare questi utenti e segnalarli a Telegram.
+@creatura | @cinismo | @assonnata | @sussiego
+"""
+    # Dividi il messaggio in blocchi
+    messages = split_message(full_text)
+
+    # Invia ogni blocco come un messaggio separato
+    for msg in messages:
+        await update.message.reply_text(msg)
+
+# Comando /staff_rules
+async def staff_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    full_text = """
+[Regolamento Interno
+x 𝗦𝘁𝗮𝗳𝗳 『𝑆𝐴𝑁𝑇𝑈𝐴𝑅𝐼𝑂』 • 
+• 1) Finalità principali dello staff:
+Lo staff, ha come obiettivo principale la gestione coordinata e responsabile del gruppo, garantendo che le regole stabilite dal Regolamento pubblico vengano rispettate da tutti gli utenti.
+
+Lo staff composto da proprietà/co-founder/moderatori/amministratori generali/supporto tecnico/ deve operare in maniera coordinata al fine di mantenere l'armonia interna allo staff e prevenire conflitti interni.
+
+• 2) Comportamento dello Staff:
+Ogni membro dello staff deve mantenere un comportamento professionale, non troppo rigido ma rispettoso, sia nelle comunicazioni interne che in quelle con gli utenti del gruppo.
+
+Le seguenti forme di condotta sono obbligatorie per tutti i membri interni allo staff: 
+
+- Riservatezza: le discussioni interne dello staff, inluse decisioni relative a sanzioni o situazioni problematiche, devono rimanere riservate e non essere divulgate a terzi. Il rispetto della riservatezza è essenziale per la fiducia reciproca.💪🏻
+
+- Imparzialità: Le decisioni prese dallo staff devono essere basate esclusivamente sul regolamento del gruppo, senza favoritismi o pregiudizi verso alcun utente. Quindi siete chiamati a trattare ogni utente in modo equo o imparziale.😗
+
+• 3) Presenza e Partecipazione Attiva:
+Per garantire un funzionamento efficiente del gruppo è necessario che ogni membro dello staff mantenga un livello minimo di presenza e partecipazione, secondo le seguenti indicazioni: 
+
+- Presenza minima: ognuno di noi è tenuto a garantire una presenza costante nel gruppo compatibile con gli impegni personali. La partecipazione minima richiesta sarà concordata all'interno dello staff tramite sondaggio, ad es: (almeno due/tre presenze attive giornaliere, per raggiungere un minimo di alcune ore settimanali).
+
+Qualora un membro dello staff non possa essere presente per un periodo prolungato, è obbligato a comunicarlo in anticipo a tutto lo staff.
+
+- Partecipazione alle riunioni: lo staff deve partecipare regolarmente a riunioni interne programmate con cadenza settimanale o mensile, in cui si discuteranno problematiche operative, decisioni strategiche e proposte di miglioramento. La partecipazione a tali riunioni è obbligatoria, salvo giustificata impossibilità.
+
+• 4) Interventi disciplinari nel Gruppo Pubblico: (molto importante)
+Le azioni disciplinari devono essere gestite con equilibrio, seguendo una procedura chiara:
+
+- Avvertimenti: in caso di violazione del regolamento da parte di un utente, lo staff è tenuto a intervenire con un avvertimento formale, nel caso in cui l'utente continuare a violare le regole, si può procedere con sanzioni come mute giornalieri/ban temporanei o in casi estremi, ban permanenti.
+
+- Documentazione delle azioni: ogni azione disciplinare dovrà essere registrata e riportata nella apposita chat del gruppo staff. Questo ci permetterà di mantenere un tracciamento delle sanzioni più semplice del file log.
+
+- Proporzionalità: le sanzioni devono essere proporzionali alla gravità dell'infrazione. (Prima di applicare Ban permanenti o altre misure severe è obbligatorio consultarsi con i Co-founder o proprietà)
+
+• 5) Conseguenze per le violazioni del Regolamento Interno allo staff:
+In caso di violazione delle norme interne da parte di un membro dello staff, sono previste le seguenti misure disciplinari:
+
+- Richiamo ufficiale: un primo richiamo sarà inviato al membro dello staff in caso di comportamenti non conformi al regolamento interno. Questo avviso sarà formale e discusso all'interno della chat privata dello staff.
+
+- Sospensione Temporanea: dopo un secondo richiamo, se le infrazioni o i comportamenti scorretti persistono, il membro dello staff può essere temporaneamente sospeso dalle sue funzioni per un periodo stabilito dai Co-founder o la proprietà.
+
+- Rimozione definitiva: in caso di ripetute e gravi violazioni o di comportamenti volti al favoritismo, il membro dello staff può essere rimosso definitivamente dalla sua posizione. Questa decisione verrà presa dai Co-founder o la proprietà dopo una discussione interna e un'eventuale votazione tra gli stessi.
+
+• 6) Dimissioni e Sostituzioni: 
+Qualsiasi membro dello staff che desidera dimettersi dall'incarico è tenuto a comunicarlo con almeno 3 giorni di anticipo, in modo da consentire ai Co-Founder o la proprietà di trovare un sostituto. (Se la comunicazione prematura di 3 giorni non viene rispettata tale persona non verrà più accettata nello staff).
+
+Questo regolamento spero possa fornirvi una base solida e strutturata per garantire la nostra gestione interna dello staff]
+"""
+    # Dividi il messaggio in blocchi
+    messages = split_message(full_text)
+
+    # Invia ogni blocco come un messaggio separato
+    for msg in messages:
+        await update.message.reply_text(msg)
+
+# Gestione dei messaggi con Sydney e contesto iniziale
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_message = update.message.text
+
+    try:
+        # Crea una sessione con SydneyClient
+        async with SydneyClient() as sydney:
+            # Concatenare le istruzioni di contesto al messaggio dell'utente
+            messaggio_completo = f"{contesto_iniziale}\nUtente: {user_message}"
+
+            print(f"Ricevuto messaggio: {user_message}")
+
+            # Richiedi la risposta a Sydney
+            response = ""
+            async for part in sydney.ask_stream(messaggio_completo):
+                response += part
+
+            # Suddividi la risposta in blocchi e invia
+            messages = split_message(response)
+            for msg in messages:
+                await update.message.reply_text(msg)
+
+    except Exception as e:
+        print(f"Errore durante la chiamata a Sydney: {e}")
+        await update.message.reply_text("Errore nel processare la richiesta. Riprova più tardi.")
+
+# Configurazione dell'applicazione
+if __name__ == "__main__":
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+
+    # Aggiunta dei comandi
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("regolamento", regolamento))
+    app.add_handler(CommandHandler("staff_rules", staff_rules))
+
+    # Gestione dei messaggi testuali
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    print("Bot avviato...")
+    app.run_polling()

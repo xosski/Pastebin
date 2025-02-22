@@ -1,0 +1,329 @@
+import vk_api
+from vk_api.longpoll import VkLongPoll, VkEventType
+from vk_api.keyboard import VkKeyboard, VkKeyboardColor
+import openai
+import logging  # Добавляем модуль логирования
+ 
+# Инициализация логирования
+logging.basicConfig(level=logging.INFO)
+ 
+# Инициализация API ВКонтакте
+session = vk_api.VkApi(token="")
+api = session.get_api()
+ 
+# Инициализация API OpenAI
+openai.api_key = ""
+ 
+# Храним историю состояния клавиатуры и данные пользователя
+user_states = {}
+user_answers = {}
+ 
+def send_message(user_id, message, keyboard=None):
+    api.messages.send(
+        user_id=user_id,
+        message=message,
+        random_id=0,
+        keyboard=keyboard
+    )
+ 
+for event in VkLongPoll(session).listen():
+    if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+        text = event.text.strip().lower()  # Приводим текст к нижнему регистру
+        user_id = event.user_id
+ 
+        # Логирование полученного сообщения
+        logging.info(f"Получено сообщение от {user_id}: {text}")  # Добавляем логирование
+ 
+        # Логика возврата на предыдущую клавиатуру
+        if user_id in user_states and text == "назад◀️":
+            if len(user_states[user_id]) > 1:
+                user_states[user_id].pop()
+                previous_keyboard = user_states[user_id][-1]
+                send_message(user_id, "Возвращаемся к предыдущему меню", keyboard=previous_keyboard)
+            else:
+                send_message(user_id, "Вы в главном меню", keyboard=user_states[user_id][0])
+            continue
+ 
+        # Приветствие
+        if text == "привет":
+            keyboard = VkKeyboard(one_time=False)
+            keyboard.add_button("Мои навыки", VkKeyboardColor.POSITIVE)
+            user_states[user_id] = [keyboard.get_keyboard()]
+            send_message(user_id, "Привет, нажми кнопку ниже", keyboard=keyboard.get_keyboard())
+ 
+        elif text == "начать":
+            keyboard = VkKeyboard(one_time=False)
+            keyboard.add_button("Мои навыки", VkKeyboardColor.POSITIVE)
+            user_states[user_id] = [keyboard.get_keyboard()]
+            send_message(user_id, "Привет, нажми кнопку ниже", keyboard=keyboard.get_keyboard())
+ 
+        # Навыки
+        elif text == "мои навыки":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Генератор идей", VkKeyboardColor.SECONDARY)
+            keyboard.add_line()
+            keyboard.add_button("Создать контент", VkKeyboardColor.SECONDARY)
+            keyboard.add_line()
+            keyboard.add_button("Сгенерировать изображение", VkKeyboardColor.SECONDARY)
+            keyboard.add_line()
+            keyboard.add_button("Инфомационные статьи", VkKeyboardColor.SECONDARY)
+            keyboard.add_line()
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "Выберите из перечня, представленного ниже", keyboard=keyboard.get_keyboard())
+ 
+        # Генератор идей
+        elif text == "генератор идей":
+            # Формируем запрос для ChatGPT
+            prompt = "Ты копирайтер в социальной сети ВК, который генерирует идеи для постов. Придумай креативную и уникальную идею для поста в тематическом сообществе, ответ дай в не более чем двух предложениях.\n Примеры идей:\nНовости\nОпросы\nКонтакт с аудиторией через комментарии\nЛичные истории \nОбмен опытом"
+ 
+            # Запрос к OpenAI
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-4o-mini",  # Или используйте gpt-3.5-turbo
+                    messages=[{
+                        "role": "system", "content": ""
+                    }, {
+                        "role": "user", "content": prompt
+                    }],
+                    max_tokens=2000,
+                )
+ 
+                # Извлекаем текст ответа
+                idea_text = response['choices'][0]['message']['content'].strip()
+                send_message(user_id, f"Идея для поста: {idea_text}", keyboard=user_states[user_id][0])
+            except Exception as e:
+                send_message(user_id, "Произошла ошибка при генерации идеи. Попробуйте снова позже.", keyboard=user_states[user_id][0])
+                print(f"Error with OpenAI request: {e}")
+ 
+ 
+        # Создание контента
+        elif text == "создать контент":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Начать создание поста", VkKeyboardColor.POSITIVE)
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "Выберите действие для создания контента", keyboard=keyboard.get_keyboard())
+ 
+                # Начало создания поста
+        elif text == "начать создание поста":
+            # Запоминаем, что ожидаем ответ на вопрос о теме
+            if user_id not in user_states:
+                user_states[user_id] = ["waiting_for_topic"]
+            else:
+                user_states[user_id].append("waiting_for_topic")
+            send_message(user_id, "Напишите, о чём будет идти речь в вашем посте.")
+ 
+        # Ожидаем ответ на вопрос "О чём?"
+        elif user_id in user_states and user_states[user_id][-1] == "waiting_for_topic":
+            user_answers[user_id] = {"topic": text}  # Сохраняем тему
+            # Запоминаем, что ожидаем ответ на вопрос "Зачем?"
+            if user_id not in user_states:
+                user_states[user_id] = ["waiting_for_purpose"]
+            else:
+                user_states[user_id].append("waiting_for_purpose")
+            send_message(user_id, "Теперь, зачем вы хотите создать этот пост?")
+ 
+        # Ожидаем ответ на вопрос "Зачем?"
+        elif user_id in user_states and user_states[user_id][-1] == "waiting_for_purpose":
+            user_answers[user_id]["purpose"] = text  # Сохраняем цель
+            # Запоминаем, что ожидаем ответ на вопрос "Целевая аудитория"
+            if user_id not in user_states:
+                user_states[user_id] = ["waiting_for_audience"]
+            else:
+                user_states[user_id].append("waiting_for_audience")
+            send_message(user_id, "Теперь напишите для кого этот текст: возраст, специалитет и т.д.")
+ 
+        # Ожидаем ответ на вопрос "Целевая аудитория"
+        elif user_id in user_states and user_states[user_id][-1] == "waiting_for_audience":
+            user_answers[user_id]["audience"] = text  # Сохраняем целевую аудиторию
+            # Запоминаем, что ожидаем ответ на вопрос "Тональность текста"
+            if user_id not in user_states:
+                user_states[user_id] = ["waiting_for_tone"]
+            else:
+                user_states[user_id].append("waiting_for_tone")
+            send_message(user_id, "Теперь выберите тональность текста. Например: неформальный, официальный и т.д.")
+ 
+        # Ожидаем ответ на вопрос "Тональность текста"
+        elif user_id in user_states and user_states[user_id][-1] == "waiting_for_tone":
+            user_answers[user_id]["tone"] = text  # Сохраняем тональность
+            # Формируем запрос для ChatGPT
+            prompt = f"Ты копирайтер в социальной сети ВК, который создаёт посты для сообщества. Ты должен написать пост на тему {user_answers[user_id]['topic']}, который {user_answers[user_id]['purpose']} пользователя, для следующей целевой аудитории {user_answers[user_id]['audience']} и выдерживай следующую тональность текста: {user_answers[user_id]['tone']}."
+ 
+            # Запрос к OpenAI
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-4o-mini",  # Или используйте gpt-3.5-turbo
+                    messages=[{
+                        "role": "system", "content": "Ты копирайтер в социальной сети ВК, который создаёт посты для сообщества."
+                    }, {
+                        "role": "user", "content": f"Напиши пост на тему {user_answers[user_id]['topic']}, который {user_answers[user_id]['purpose']} пользователя, для следующей целевой аудитории {user_answers[user_id]['audience']} и выдерживай следующую тональность текста: {user_answers[user_id]['tone']}."
+                    }],
+                    max_tokens=2000,
+                )
+                            # Извлекаем текст ответа
+                post_text = response['choices'][0]['message']['content'].strip()
+                send_message(user_id, post_text, keyboard=None)
+            except Exception as e:
+                send_message(user_id, "Произошла ошибка при генерации поста. Попробуйте снова позже.", keyboard=None)
+                print(f"Error with OpenAI request: {e}")
+ 
+            # Возвращаем пользователя в главное меню
+            send_message(user_id, "Возвращаем вас в главное меню", keyboard=user_states[user_id][0])
+            user_states[user_id] = [user_states[user_id][0]]
+ 
+        # Сгенерировать изображение
+        elif text == "сгенерировать изображение":
+            # Ожидаем описание
+            if user_id not in user_states:
+                user_states[user_id] = ["waiting_for_image_description"]
+            else:
+                user_states[user_id].append("waiting_for_image_description")
+            send_message(user_id, "Напишите описание поста или подробно опишите, какое изображение нужно.")
+ 
+        # Обрабатываем описание для изображения
+        elif user_id in user_states and user_states[user_id][-1] == "waiting_for_image_description":
+            description = text  # Сохраняем описание
+            # Перевод описания на английский
+            try:
+                translation = openai.ChatCompletion.create(
+                    model="gpt-4o-mini",
+                    messages=[{
+                        "role": "system", "content": "Translate the following text to English for an image generation prompt."
+                    }, {
+                        "role": "user", "content": description
+                    }],
+                    max_tokens=2000,
+                )
+                translated_description = translation['choices'][0]['message']['content'].strip()
+ 
+                # Генерация изображения через DALL-E
+                image_prompt = f"Generate an image based on this description: {translated_description}"
+                image_response = openai.Image.create(
+                    model='dall-e-3',
+                    prompt=image_prompt,
+                    n=1,
+                    size="1024x1024",
+                )
+                image_url = image_response['data'][0]['url']
+                send_message(user_id, f"Ваше изображение готово: {image_url}")
+            except Exception as e:
+                send_message(user_id, "Произошла ошибка при генерации изображения. Попробуйте снова позже.")
+                print(f"Error with image generation: {e}")
+ 
+            # Возвращаем пользователя в главное меню
+            send_message(user_id, "Возвращаем вас в главное меню", keyboard=user_states[user_id][0])
+            user_states[user_id] = [user_states[user_id][0]]
+ 
+        elif text == "инфомационные статьи":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Вовлечённость", VkKeyboardColor.SECONDARY)
+            keyboard.add_button("Набор аудитории", VkKeyboardColor.SECONDARY)
+            keyboard.add_line()
+            keyboard.add_button("Анализ и статистика", VkKeyboardColor.SECONDARY)
+            keyboard.add_button("Как писать посты", VkKeyboardColor.SECONDARY)
+            keyboard.add_line()
+            keyboard.add_button("Как популяризировать сообщество", VkKeyboardColor.SECONDARY)
+            keyboard.add_line()
+            keyboard.add_button("Как уникализировать сообщество", VkKeyboardColor.SECONDARY)
+            keyboard.add_line()
+            keyboard.add_button("Распространить сообщество", VkKeyboardColor.SECONDARY)
+            keyboard.add_line()
+            keyboard.add_button("FeedBack с аудиторией", VkKeyboardColor.SECONDARY)
+            keyboard.add_line()
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "Выберите действие для создания контента", keyboard=keyboard.get_keyboard())
+ 
+        elif text == "вовлечённость":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "• Качественный контент: Создавайте интересные и информативные посты. \n• Призывы к действию: В конце постов побуждайте пользователей делиться вашим контентом.\n• Хэштеги: Используйте релевантные хэштеги для увеличения охвата.", keyboard=keyboard.get_keyboard())
+ 
+        elif text == "набор аудитории":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "• Анализ целевой аудитории: Определите, кто ваши потенциальные подписчики, их интересы и поведение.\n • Контент по интересам: Публикуйте материалы, которые интересны вашей целевой аудитории (статьи, видео, инфографика). \n• Хэштеги и ключевые слова: Используйте релевантные хэштеги и ключевые слова для повышения видимости постов.\n • Обратная связь: Общайтесь с подписчиками, задавайте вопросы и учитывайте их мнение при создании контента.", keyboard=keyboard.get_keyboard())
+ 
+        elif text == "вовлечённость":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "", keyboard=keyboard.get_keyboard())
+ 
+        elif text == "как писать посты":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "• Заголовок: Начинайте с привлекательного заголовка, который привлечёт внимание.\n \n• Структура текста: Используйте короткие абзацы, списки и подзаголовки для удобства восприятия.\n \n• Визуализация: Добавляйте изображения, видео или GIF-файлы, чтобы сделать посты более привлекательными.\n \n• Призыв к действию: Завершайте посты призывом к действию (например, «Поделитесь мнением в комментариях»).\n \n• Адаптация под аудиторию: Пишите в том стиле и тоне, который соответствует интересам и ожиданиям вашей аудитории.\n \n PS. Или воспользоваться встроенной функцией в нашем боте :)", keyboard=keyboard.get_keyboard())
+ 
+        elif text == "анализ и статистика":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "• Статистика сообщества: Регулярно проверяйте статистику по подписчикам, охвату и вовлеченности.\n \n• Анализ постов: Определяйте, какие посты вызывают наибольший интерес, и адаптируйте контент на основе этого.\n \n• Мониторинг конкурентов: Следите за успехами других сообществ для выявления трендов", keyboard=keyboard.get_keyboard())
+ 
+        elif text == "как популяризировать сообщество":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "• Регулярный контент: Постите регулярно, чтобы поддерживать интерес.\n \n• Таргетированная реклама: Используйте возможности рекламы ВК для привлечения целевой аудитории.\n\n• Сотрудничество: Объединяйтесь с другими сообществами или блогерами для кросс-промоции.\n\n• Конкурсы и акции: Проводите розыгрыши, чтобы привлечь новых подписчиков.", keyboard=keyboard.get_keyboard())
+ 
+        elif text == "как уникализировать сообщество":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "• Определите свою нишу: Найдите уникальную тему или угол зрения, который отличает вас от конкурентов.\n \n• Оригинальный стиль: Разработайте свой стиль общения и визуального оформления.\n \n• Эксклюзивный контент: Предлагайте материалы, которые нельзя найти в других сообществах.", keyboard=keyboard.get_keyboard())
+ 
+        elif text == "распространить сообщество":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "• Целевая реклама: Используйте таргетированную рекламу ВКонтакте, чтобы привлечь пользователей, которые интересуются вашей тематикой.\n \n• Партнёрства: Сотрудничайте с другими сообществами или блогерами в вашей нише для взаимного продвижения.\n \n • Конкурсы и розыгрыши: Организуйте конкурсы, которые требуют подписки на ваше сообщество для участия. \n \n • Кросс-промоция: Продвигайте ваше сообщество на других платформах (Instagram, Facebook, Telegram и т.д.).\n \n• Контент-маркетинг: Создавайте качественный контент, который будет делиться пользователями.", keyboard=keyboard.get_keyboard())
+ 
+        elif text == "feedback с аудиторией":
+            keyboard = VkKeyboard()
+            keyboard.add_button("Назад◀️", VkKeyboardColor.NEGATIVE)
+            if user_id not in user_states:
+                user_states[user_id] = [keyboard.get_keyboard()]
+            else:
+                user_states[user_id].append(keyboard.get_keyboard())
+            send_message(user_id, "• Ответы на комментарии: Регулярно отвечайте на комментарии и сообщения подписчиков.\n \n• Опросы и вопросы: Проводите опросы, чтобы узнать мнение аудитории.\n \n• Участие в дискуссиях: Активно участвуйте в обсуждениях, создавая атмосферу открытости.", keyboard=keyboard.get_keyboard())
+        else:
+            send_message(user_id, "Произошла ошибка, возвращаю вас в гланое меню", keyboard=user_states[user_id][0])
+            user_states[user_id] = [user_states[user_id][0]] 

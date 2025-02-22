@@ -1,0 +1,452 @@
+s=3D"content" align=3D"left" width=3D"1456" style=3D"text-align: center;"><=
+a class=3D"image-link" rel=3D"" target=3D"_blank" href=3D"https://substack.=
+com/redirect/74d14822-fe3a-46bb-bd3e-d19d5db1ebe6?j=3DeyJ1IjoiMnFqam1iIn0._=
+yFj7cFxGjz5bZZUkxbaCR2rXsCVHshhQCfNRm70NXU" style=3D"position: relative;fle=
+x-direction: column;align-items: center;padding: 0;width: auto;height: auto=
+;border: none;text-decoration: none;display: block;margin: 0;"><img class=
+=3D"wide-image" data-attrs=3D"{&quot;src&quot;:&quot;https://substack-post-=
+media.s3.amazonaws.com/public/images/86f71da5-c412-4262-816f-9886ddc849d7_1=
+678x614.png&quot;,&quot;srcNoWatermark&quot;:null,&quot;fullscreen&quot;:nu=
+ll,&quot;imageSize&quot;:null,&quot;height&quot;:533,&quot;width&quot;:1456=
+,&quot;resizeWidth&quot;:null,&quot;bytes&quot;:240069,&quot;alt&quot;:null=
+,&quot;title&quot;:null,&quot;type&quot;:&quot;image/png&quot;,&quot;href&q=
+uot;:null,&quot;belowTheFold&quot;:true,&quot;topImage&quot;:false,&quot;in=
+ternalRedirect&quot;:null,&quot;isProcessing&quot;:false}" alt=3D"" width=
+=3D"550" height=3D"201.33928571428572" src=3D"https://substackcdn.com/image=
+/fetch/w_2912,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2=
+Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F86f71da5-c412-426=
+2-816f-9886ddc849d7_1678x614.png" style=3D"border: none !important;vertical=
+-align: middle;display: block;-ms-interpolation-mode: bicubic;height: auto;=
+margin-bottom: 0;width: auto !important;max-width: 100% !important;margin: =
+0 auto;"></a></td><td style=3D"text-align: center;"></td></tr></tbody></tab=
+le></figure></div><p style=3D"margin: 0 0 20px 0;color: rgb(54, 55, 55);lin=
+e-height: 26px;font-size: 16px;">In the age of AI and automation, Refactori=
+ng is still hand-crafted, hand-drawn, and thrives on human connection. So I=
+ created a new wordmark to reflect these vibes, doing all the lettering mys=
+elf on Figma. It took way too many hours, but it was worth it!</p><p style=
+=3D"margin: 0 0 20px 0;color: rgb(54, 55, 55);line-height: 26px;font-size: =
+16px;"><span>Not only that: we are also introducing a </span><strong>new Re=
+factoring font</strong><span>!</span></p><div class=3D"captioned-image-cont=
+ainer-static" style=3D"font-size: 16px;line-height: 26px;margin: 32px auto;=
+"><figure style=3D"width: 100%;margin: 0 auto;"><table class=3D"image-wrapp=
+er" data-component-name=3D"Image2ToDOMStatic" width=3D"100%" border=3D"0" c=
+ellspacing=3D"0" cellpadding=3D"0" style=3D"mso-padding-alt: 1em 0 1.6em;">=
+<tbody><tr><td style=3D"text-align: center;"></td><td class=3D"content" ali=
+gn=3D"left" width=3D"1456" style=3D"text-align: center;"><a class=3D"image-=
+link" rel=3D"" target=3D"_blank" href=3D"https://substack.com/redirect/9137=
+4fdf-4c04-43e3-8d92-cf1c75216daa?j=3DeyJ1IjoiMnFqam1iIn0._yFj7cFxGjz5bZZUkx=
+baCR2rXsCVHshhQCfNRm70NXU" style=3D"position: relative;flex-direction: colu=
+mn;align-items: center;padding: 0;width: auto;height: auto;border: none;tex=
+t-decoration: none;display: block;margin: 0;"><img class=3D"wide-image" dat=
+a-attrs=3D"{&quot;src&quot;:&quot;https://substack-post-media.s3.amazonaws.=
+com/public/images/c9282f3f-63d6-45bf-ad98-199eb56726ec_2540x372.png&quot;,&=
+quot;srcNoWatermark&quot;:null,&quot;fullscreen&quot;:null,&quot;imageSize&=
+quot;:null,&quot;height&quot;:213,&quot;width&quot;:1456,&quot;resizeWidth&=
+quot;:null,&quot;bytes&quot;:103363,&quot;alt&quot;:null,&quot;title&quot;:=
+null,&quot;type&quot;:&quot;image/png&quot;,&quot;href&quot;:null,&quot;bel=
+owTheFold&quot;:true,&quot;topImage&quot;:false,&quot;internalRedirect&quot=
+;:null,&quot;isProcessing&quot;:false}" alt=3D"" width=3D"550" height=3D"80=
+.46016483516483" src=3D"https://substackcdn.com/image/fetch/w_2912,c_limit,=
+f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s=
+3.amazonaws.com%2Fpublic%2Fimages%2Fc9282f3f-63d6-45bf-ad98-199eb56726ec_25=
+40x372.png" style=3D"border: none !important;vertical-align: middle;display=
+: block;-ms-interpolation-mode: bicubic;height: auto;margin-bottom: 0;width=
+: auto !important;max-width: 100% !important;margin: 0 auto;"></a></td><td =
+style=3D"text-align: center;"></td></tr></tbody></table></figure></div><p s=
+tyle=3D"margin: 0 0 20px 0;color: rgb(54, 55, 55);line-height: 26px;font-si=
+ze: 16px;"><span>Until today, I did all the writing on drawings and video e=
+lements </span><em>by hand</em><span>, on my iPad. This was super time cons=
+uming, and allowed me to create fewer drawings and graphics that I would ha=
+ve liked.</span></p><p style=3D"margin: 0 0 20px 0;color: rgb(54, 55, 55);l=
+ine-height: 26px;font-size: 16px;"><span>So I spent another </span><em>unre=
+sonable</em><span> amount of hours creating a font that reflects my own han=
+dwriting, so that I can use it in Canva and Figma to create better drawings=
+ faster!</span></p><div class=3D"captioned-image-container-static" style=3D=
+"font-size: 16px;line-height: 26px;margin: 32px auto;"><figure style=3D"wid=
+th: 100%;margin: 0 auto;"><table class=3D"image-wrapper" data-component-nam=
+e=3D"Image2ToDOMStatic" width=3D"100%" border=3D"0" cellspacing=3D"0" cellp=
+adding=3D"0" style=3D"mso-padding-alt: 1em 0 1.6em;"><tbody><tr><td style=
+=3D"text-align: center;"></td><td class=3D"content" align=3D"left" width=3D=
+"1456" style=3D"text-align: center;"><a class=3D"image-link" rel=3D"" targe=
+t=3D"_blank" href=3D"https://substack.com/redirect/3df45254-bed9-48c5-8c33-=
+a0c80ce5c370?j=3DeyJ1IjoiMnFqam1iIn0._yFj7cFxGjz5bZZUkxbaCR2rXsCVHshhQCfNRm=
+70NXU" style=3D"position: relative;flex-direction: column;align-items: cent=
+er;padding: 0;width: auto;height: auto;border: none;text-decoration: none;d=
+isplay: block;margin: 0;"><img class=3D"wide-image" data-attrs=3D"{&quot;sr=
+c&quot;:&quot;https://substack-post-media.s3.amazonaws.com/public/images/08=
+8ee92f-675c-448c-89ac-586f4d0396ff_1978x580.png&quot;,&quot;srcNoWatermark&=
+quot;:null,&quot;fullscreen&quot;:null,&quot;imageSize&quot;:null,&quot;hei=
+ght&quot;:427,&quot;width&quot;:1456,&quot;resizeWidth&quot;:null,&quot;byt=
+es&quot;:301374,&quot;alt&quot;:null,&quot;title&quot;:null,&quot;type&quot=
+;:&quot;image/png&quot;,&quot;href&quot;:null,&quot;belowTheFold&quot;:true=
+,&quot;topImage&quot;:false,&quot;internalRedirect&quot;:null,&quot;isProce=
+ssing&quot;:false}" alt=3D"" width=3D"550" height=3D"161.29807692307693" sr=
+c=3D"https://substackcdn.com/image/fetch/w_2912,c_limit,f_auto,q_auto:good,=
+fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fp=
+ublic%2Fimages%2F088ee92f-675c-448c-89ac-586f4d0396ff_1978x580.png" style=
+=3D"border: none !important;vertical-align: middle;display: block;-ms-inter=
+polation-mode: bicubic;height: auto;margin-bottom: 0;width: auto !important=
+;max-width: 100% !important;margin: 0 auto;"></a></td><td style=3D"text-ali=
+gn: center;"></td></tr></tbody></table><figcaption class=3D"image-caption" =
+style=3D"box-sizing: content-box;color: #777777;font-size: 14px;line-height=
+: 20px;font-weight: 400;letter-spacing: -.15px;margin-top: 8px;width: 70%;p=
+adding-left: 15%;padding-right: 15%;text-align: center;">Our new font, in a=
+ction!</figcaption></figure></div><p style=3D"margin: 0 0 20px 0;color: rgb=
+(54, 55, 55);line-height: 26px;font-size: 16px;"><span>For those wondering =
+how this works, I used </span><a href=3D"https://substack.com/redirect/31d8=
+fd00-3339-408c-b675-7041f66b3d56?j=3DeyJ1IjoiMnFqam1iIn0._yFj7cFxGjz5bZZUkx=
+baCR2rXsCVHshhQCfNRm70NXU" rel=3D"" style=3D"color: rgb(54, 55, 55);text-de=
+coration: underline;">FontForge</a><span>, a bit old but still awesome open=
+ source app for macOS.</span></p><div class=3D"captioned-image-container-st=
+atic" style=3D"font-size: 16px;line-height: 26px;margin: 32px auto;"><figur=
+e style=3D"width: 100%;margin: 0 auto;"><table class=3D"image-wrapper" data=
+-component-name=3D"Image2ToDOMStatic" width=3D"100%" border=3D"0" cellspaci=
+ng=3D"0" cellpadding=3D"0" style=3D"mso-padding-alt: 1em 0 1.6em;"><tbody><=
+tr><td style=3D"text-align: center;"></td><td class=3D"content" align=3D"le=
+ft" width=3D"1456" style=3D"text-align: center;"><a class=3D"image-link" re=
+l=3D"" target=3D"_blank" href=3D"https://substack.com/redirect/bd05ee70-57d=
+b-4e0d-89d2-e4232bd9b323?j=3DeyJ1IjoiMnFqam1iIn0._yFj7cFxGjz5bZZUkxbaCR2rXs=
+CVHshhQCfNRm70NXU" style=3D"position: relative;flex-direction: column;align=
+-items: center;padding: 0;width: auto;height: auto;border: none;text-decora=
+tion: none;display: block;margin: 0;"><img class=3D"wide-image" data-attrs=
+=3D"{&quot;src&quot;:&quot;https://substack-post-media.s3.amazonaws.com/pub=
+lic/images/439a6323-fe59-4fb9-89be-d6044d12946f_2448x1500.png&quot;,&quot;s=
+rcNoWatermark&quot;:null,&quot;fullscreen&quot;:null,&quot;imageSize&quot;:=
+null,&quot;height&quot;:892,&quot;width&quot;:1456,&quot;resizeWidth&quot;:=
+null,&quot;bytes&quot;:686077,&quot;alt&quot;:null,&quot;title&quot;:null,&=
+quot;type&quot;:&quot;image/png&quot;,&quot;href&quot;:null,&quot;belowTheF=
+old&quot;:true,&quot;topImage&quot;:false,&quot;internalRedirect&quot;:null=
+,&quot;isProcessing&quot;:false}" alt=3D"" width=3D"550" height=3D"336.9505=
+4945054943" src=3D"https://substackcdn.com/image/fetch/w_2912,c_limit,f_aut=
+o,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.ama=
+zonaws.com%2Fpublic%2Fimages%2F439a6323-fe59-4fb9-89be-d6044d12946f_2448x15=
+00.png" style=3D"border: none !important;vertical-align: middle;display: bl=
+ock;-ms-interpolation-mode: bicubic;height: auto;margin-bottom: 0;width: au=
+to !important;max-width: 100% !important;margin: 0 auto;"></a></td><td styl=
+e=3D"text-align: center;"></td></tr></tbody></table></figure></div><h2 clas=
+s=3D"header-anchor-post" style=3D"position: relative;--highlight-bg: rgba(v=
+ar(--color-bg-accent-themed-rgb), 0.2);font-family: 'SF Pro Display', -appl=
+e-system-headline, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI'=
+, Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoj=
+i', 'Segoe UI Symbol';font-weight: bold;-webkit-font-smoothing: antialiased=
+;-moz-osx-font-smoothing: antialiased;-webkit-appearance: optimizelegibilit=
+y;-moz-appearance: optimizelegibility;appearance: optimizelegibility;margin=
+: 1em 0 0.625em 0;color: rgb(54, 55, 55);line-height: 1.16em;font-size: 1.6=
+25em;">&#128640; What comes next?</h2><p style=3D"margin: 0 0 20px 0;color:=
+ rgb(54, 55, 55);line-height: 26px;font-size: 16px;"><span>It ain&#8217;t o=
+ver! This article is about this year, rather than the next, and we still ha=
+ve plenty to unveil, including a </span><strong>brand new library &#127963;=
+&#65039;</strong><span> and some </span><strong>incredible guest authors &#=
+128395;&#65039;</strong><span> that will join us. So stay tuned in the comi=
+ng weeks!</span></p><p style=3D"margin: 0 0 20px 0;color: rgb(54, 55, 55);l=
+ine-height: 26px;font-size: 16px;">The goal of Refactoring is to provide th=
+e best way for engineers and managers in tech to grow professionally, regul=
+arly, week over week.</p><p style=3D"margin: 0 0 20px 0;color: rgb(54, 55, =
+55);line-height: 26px;font-size: 16px;">If you like what you see, join us t=
+oday to start the new year on the right foot!</p><div class=3D"subscribe-wi=
+dget is-signed-up" data-component-name=3D"SubscribeWidget" style=3D"margin:=
+ 0 0 1em;direction: ltr;font-size: 16px;line-height: 26px;"><p class=3D"but=
+ton-wrapper" style=3D"margin: 0 0 20px 0;color: rgb(54, 55, 55);line-height=
+: 26px;font-size: 16px;text-align: center;cursor: pointer;border-radius: 4p=
+x;"><a class=3D"button subscribe-btn primary" href=3D"https://substack.com/=
+redirect/c7752618-2e46-400c-af6b-e800e344a128?j=3DeyJ1IjoiMnFqam1iIn0._yFj7=
+cFxGjz5bZZUkxbaCR2rXsCVHshhQCfNRm70NXU" style=3D"font-family: system-ui, -a=
+pple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans=
+-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';display: i=
+nline-block;box-sizing: border-box;cursor: pointer;border: none;border-radi=
+us: 8px;font-size: 14px;line-height: 20px;font-weight: 600;text-align: cent=
+er;opacity: 1;outline: none;white-space: nowrap;color: #ffffff !important;t=
+ext-decoration: none !important;margin: 0 auto;background-color: #177bfd;pa=
+dding: 12px 20px;height: auto;"><span style=3D"color: #ffffff;text-decorati=
+on: none;">Get full access to Refactoring! &#128640;</span></a></p></div><d=
+iv style=3D"font-size: 16px;line-height: 26px;"><hr style=3D"margin: 32px 0=
+;padding: 0;height: 1px;background: #e6e6e6;border: none;"></div><h2 class=
+=3D"header-anchor-post" style=3D"position: relative;--highlight-bg: rgba(va=
+r(--color-bg-accent-themed-rgb), 0.2);font-family: 'SF Pro Display', -apple=
+-system-headline, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',=
+ Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji=
+', 'Segoe UI Symbol';font-weight: bold;-webkit-font-smoothing: antialiased;=
+-moz-osx-font-smoothing: antialiased;-webkit-appearance: optimizelegibility=
+;-moz-appearance: optimizelegibility;appearance: optimizelegibility;margin:=
+ 1em 0 0.625em 0;color: rgb(54, 55, 55);line-height: 1.16em;font-size: 1.62=
+5em;">&#127775; The Best Articles of 2024</h2><p style=3D"margin: 0 0 20px =
+0;color: rgb(54, 55, 55);line-height: 26px;font-size: 16px;">And finally, h=
+ere are the 10 best articles I wrote this year, based on popularity and my =
+personal preference:</p><ol style=3D"margin-top: 0;padding: 0;"><li style=
+=3D"margin: 8px 0 0 32px;"><p style=3D"color: rgb(54, 55, 55);line-height: =
+26px;margin-bottom: 0;box-sizing: border-box;padding-left: 4px;font-size: 1=
+6px;margin: 0;"><span>&#128674; </span><strong><a href=3D"https://substack.=
+com/redirect/8f64db20-2fcd-44ae-8b0f-798ff39f403b?j=3DeyJ1IjoiMnFqam1iIn0._=
+yFj7cFxGjz5bZZUkxbaCR2rXsCVHshhQCfNRm70NXU" rel=3D"" style=3D"color: rgb(54=
+, 55, 55);text-decoration: underline;">How to Plan and Execute Software Pro=
+jects</a></strong><span> &#8212; this is literally the most popular Refacto=
+ring article of all time. It&#8217;s a loong guide on planning software rig=
+ht, with a lot of opinionated takes and practical ideas.</span></p></li><li=
+ style=3D"margin: 8px 0 0 32px;"><p style=3D"color: rgb(54, 55, 55);line-he=
+ight: 26px;margin-bottom: 0;box-sizing: border-box;padding-left: 4px;font-s=
+ize: 16px;margin: 0;"><span>&#127922; </span><strong><a href=3D"https://sub=
+stack.com/redirect/fa9ee706-a5b0-4107-b920-6702616faefe?j=3DeyJ1IjoiMnFqam1=
+iIn0._yFj7cFxGjz5bZZUkxbaCR2rXsCVHshhQCfNRm70NXU" rel=3D"" style=3D"color: =
+rgb(54, 55, 55);text-decoration: underline;">Mental Models for Engineers an=
+d Managers</a></strong><span> &#8212; a collection of my 10 favorite mental=
+ models, plus a ton of resources.</span></p></li><li style=3D"margin: 8px 0=
+ 0 32px;"><p style=3D"color: rgb(54, 55, 55);line-height: 26px;margin-botto=
+m: 0;box-sizing: border-box;padding-left: 4px;font-size: 16px;margin: 0;"><=
+span>&#128202; </span><strong><a href=3D"https://substack.com/redirect/e87d=
+e95b-a59b-45fc-aa0e-f9024feabf0b?j=3DeyJ1IjoiMnFqam1iIn0._yFj7cFxGjz5bZZUkx=
+baCR2rXsCVHshhQCfNRm70NXU" rel=3D"" style=3D"color: rgb(54, 55, 55);text-de=
+coration: underline;">The State of Engineering Productivity</a></strong><sp=
+an> &#8212; our first industry report! We collected deep insights about pro=
+ductivity from more than 200 engineers and managers.</span></p></li><li sty=
+le=3D"margin: 8px 0 0 32px;"><p style=3D"color: rgb(54, 55, 55);line-height=
+: 26px;margin-bottom: 0;box-sizing: border-box;padding-left: 4px;font-size:=
+ 16px;margin: 0;"><span>&#127933; </span><strong><a href=3D"https://substac=
+k.com/redirect/d3f6afa3-b612-4554-a23a-be0a9d9079df?j=3DeyJ1IjoiMnFqam1iIn0=
+._yFj7cFxGjz5bZZUkxbaCR2rXsCVHshhQCfNRm70NXU" rel=3D"" style=3D"color: rgb(=
+54, 55, 55);text-decoration: underline;">How Engineering Management is Chan=
+ging</a></strong><span> &#8212; we explored the trend of fewer managers, mo=
+re technical work, and different careers, backed by real stories and podcas=
+t interviews.</span></p></li><li style=3D"margin: 8px 0 0 32px;"><p style=
+=3D"color: rgb(54, 55, 55);line-height: 26px;margin-bottom: 0;box-sizing: b=
+order-box;padding-left: 4px;font-size: 16px;margin: 0;"><span>&#128269; </s=
+pan><strong><a href=3D"https://substack.com/redirect/5ebb3b11-a332-4889-871=
+5-2540c0095ec1?j=3DeyJ1IjoiMnFqam1iIn0._yFj7cFxGjz5bZZUkxbaCR2rXsCVHshhQCfN=
+Rm70NXU" rel=3D"" style=3D"color: rgb(54, 55, 55);text-decoration: underlin=
+e;">Thoughts on Code Reviews</a></strong><span> &#8212; I threw down the ga=
+untlet here and said code reviews are broken, and propose a small framework=
+ to do them better. High density of hot takes here.</span></p></li><li styl=
+e=3D"margin: 8px 0 0 32px;"><p style=3D"color: rgb(54, 55, 55);line-height:=
+ 26px;margin-bottom: 0;box-sizing: border-box;padding-left: 4px;font-size: =
+16px;margin: 0;"><span>&#128218; </span><strong><a href=3D"https://substack=
+.com/redirect/4938df1d-af54-47b6-841e-29a41c857ea1?j=3DeyJ1IjoiMnFqam1iIn0.=
+_yFj7cFxGjz5bZZUkxbaCR2rXsCVHshhQCfNRm70NXU" rel=3D"" style=3D"color: rgb(5=
+4, 55, 55);text-decoration: underline;">How I Read Books</a></strong><span>=
+ &#8212; my process for reading books, which has completely changed since w=
+e have the community book club. I read 12 books this year, my all-time reco=
+rd.</span></p></li><li style=3D"margin: 8px 0 0 32px;"><p style=3D"color: r=
+gb(54, 55, 55);line-height: 26px;margin-bottom: 0;box-sizing: border-box;pa=
+dding-left: 4px;font-size: 16px;margin: 0;"><span>&#127912; </span><strong>=
+<a href=3D"https://substack.com/redirect/d1a12bca-ec9c-4859-8fb0-4541c61878=
+cd?j=3DeyJ1IjoiMnFqam1iIn0._yFj7cFxGjz5bZZUkxbaCR2rXsCVHshhQCfNRm70NXU" rel=
+=3D"" style=3D"color: rgb(54, 55, 55);text-decoration: underline;">How to B=
+ecome a Product Engineer</a></strong><span> &#8212; to me, this was the mos=
+t important trend of the year. I am proud that we explored it in this artic=
+le, which also works as a guide for engineers who want to get more into pro=
+duct.</span></p></li><li style=3D"margin: 8px 0 0 32px;"><p style=3D"color:=
+ rgb(54, 55, 55);line-height: 26px;margin-bottom: 0;box-sizing: border-box;=
+padding-left: 4px;font-size: 16px;margin: 0;"><span>&#129514; </span><stron=
+g><a href=3D"https://substack.com/redirect/4d79d332-78a4-4471-a659-3655894f=
+1772?j=3DeyJ1IjoiMnFqam1iIn0._yFj7cFxGjz5bZZUkxbaCR2rXsCVHshhQCfNRm70NXU" r=
+el=3D"" style=3D"color: rgb(54, 55, 55);text-decoration: underline;">How to=
+ do QA in 2024</a></strong><span> &#8212; QA is a confusing practice. We ex=
+plored it </span><em>end-to-end</em><span> (see what I did there?) thanks t=
+o an incredible Mastermind discussion.</span></p></li><li style=3D"margin: =
+8px 0 0 32px;"><p style=3D"color: rgb(54, 55, 55);line-height: 26px;margin-=
+bottom: 0;box-sizing: border-box;padding-left: 4px;font-size: 16px;margin: =
+0;"><span>&#128214; </span><strong><a href=3D"https://substack.com/redirect=
+/44b526dd-3c29-456c-b38a-c81d37b7f1c5?j=3DeyJ1IjoiMnFqam1iIn0._yFj7cFxGjz5b=
+ZZUkxbaCR2rXsCVHshhQCfNRm70NXU" rel=3D"" style=3D"color: rgb(54, 55, 55);te=
+xt-decoration: underline;">How to Create an Engineering Handbook</a></stron=
+g><span> &#8212; I am a note-taking nerd, and took on the task of creating =
+effective docs basically everywhere I went. This article includes everythin=
+g I know about creating good handbooks + the experience of people in the ma=
+stermind.</span></p></li><li style=3D"margin: 8px 0 0 32px;"><p style=3D"co=
+lor: rgb(54, 55, 55);line-height: 26px;margin-bottom: 0;box-sizing: border-=
+box;padding-left: 4px;font-size: 16px;margin: 0;"><span>&#129716; </span><s=
+trong><a href=3D"https://substack.com/redirect/7a73aadd-b26c-4e9a-bab9-1e54=
+e7a8aaff?j=3DeyJ1IjoiMnFqam1iIn0._yFj7cFxGjz5bZZUkxbaCR2rXsCVHshhQCfNRm70NX=
+U" rel=3D"" style=3D"color: rgb(54, 55, 55);text-decoration: underline;">Ge=
+nerative Culture</a></strong><span> &#8212; culture is the quintessential f=
+luffy topic. This article is my best attempt at writing something useful an=
+d practical about it, backed by a ton of great stories.</span></p></li></ol=
+><div style=3D"font-size: 16px;line-height: 26px;"><hr style=3D"margin: 32p=
+x 0;padding: 0;height: 1px;background: #e6e6e6;border: none;"></div><p styl=
+e=3D"margin: 0 0 20px 0;color: rgb(54, 55, 55);line-height: 26px;font-size:=
+ 16px;">And that&#8217;s it for today! I wish you some amazing holidays sur=
+rounded by your loved ones.</p><p style=3D"margin: 0 0 20px 0;color: rgb(54=
+, 55, 55);line-height: 26px;font-size: 16px;margin-bottom: 0;"><span>See yo=
+u in 2025! &#128075;</span><br><span>Luca</span></p></div></div><div class=
+=3D"postscript-placeholder" style=3D"margin: 32px 0 0;width: 100%;box-sizin=
+g: border-box;font-size: 16px;line-height: 26px;"></div><table class=3D"ema=
+il-ufi-2-bottom" role=3D"presentation" width=3D"100%" border=3D"0" cellspac=
+ing=3D"0" cellpadding=3D"0" style=3D"border-top: 1px solid rgb(0, 0, 0, .1)=
+;border-bottom: 1px solid rgb(0, 0, 0, .1);min-width: 100%;"><tbody><tr hei=
+ght=3D"16"><td height=3D"16" style=3D"font-size:0px;line-height:0;">&nbsp;<=
+/td></tr><tr><td><table class=3D"email-ufi-2-row" role=3D"presentation" wid=
+th=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" style=3D"borde=
+r-bottom: 1px solid rgb(0, 0, 0, .1);"><tbody><tr><td width=3D"95%"><table =
+class=3D"email-button-outline-wrapper-full-width" role=3D"presentation" wid=
+th=3D"auto" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" style=3D"width=
+: 95%;margin: 0 auto;"><tbody><tr><td align=3D"center"><a class=3D"email-bu=
+tton-outline full-width" href=3D"https://substack.com/app-link/post?publica=
+tion_id=3D64099&post_id=3D153531990&utm_source=3Dsubstack&utm_medium=3Demai=
+l&utm_content=3Dshare&utm_campaign=3Demail-share&action=3Dshare&triggerShar=
+e=3Dtrue&isFreemail=3Dtrue&r=3D2qjjmb&token=3DeyJ1c2VyX2lkIjoxNjU1MTQyNTksI=
+nBvc3RfaWQiOjE1MzUzMTk5MCwiaWF0IjoxNzM1MTEwMzYyLCJleHAiOjE3Mzc3MDIzNjIsImlz=
+cyI6InB1Yi02NDA5OSIsInN1YiI6InBvc3QtcmVhY3Rpb24ifQ.GBMlJZRNSTRKNJVprYUHr6mw=
+HKu_j2gw1eREbyOTKCw" style=3D"font-family: system-ui, -apple-system, BlinkM=
+acSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Colo=
+r Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';display: inline-block;font-we=
+ight: 500;border: 1px solid rgb(0, 0, 0, .1);border-radius: 9999px;text-tra=
+nsform: uppercase;font-size: 12px;line-height: 12px;padding: 9px 14px;text-=
+decoration: none;color: rgb(119, 119, 119);width: 100%;padding-left: 0;padd=
+ing-right: 0;"><img class=3D"icon" src=3D"https://substackcdn.com/image/fet=
+ch/w_36,c_scale,f_png,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubsta=
+ck.com%2Ficon%2FLucideShare%3Fv%3D4%26height%3D36%26fill%3Dnone%26stroke%3D=
+%2523808080%26strokeWidth%3D2" width=3D"18" height=3D"18" style=3D"margin-r=
+ight: 8px;min-width: 18px;min-height: 18px;border: none;vertical-align: mid=
+dle;max-width: 18px" alt=3D""><span class=3D"email-button-text" style=3D"ve=
+rtical-align: middle;">Share</span></a></td></tr></tbody></table></td></tr>=
+<tr height=3D"16"><td height=3D"16" style=3D"font-size:0px;line-height:0;">=
+&nbsp;</td></tr></tbody></table></td></tr><tr height=3D"16"><td height=3D"1=
+6" style=3D"font-size:0px;line-height:0;">&nbsp;</td></tr><tr><td><table ro=
+le=3D"presentation" width=3D"100%" border=3D"0" cellspacing=3D"0" cellpaddi=
+ng=3D"0"><tbody><tr><td><table role=3D"presentation" width=3D"auto" border=
+=3D"0" cellspacing=3D"0" cellpadding=3D"0" style=3D"margin:0 auto;"><tbody>=
+<tr><td style=3D"vertical-align:middle;"><table role=3D"presentation" width=
+=3D"auto" border=3D"0" cellspacing=3D"0" cellpadding=3D"0"><tbody><tr><td a=
+lign=3D"center"><a class=3D"email-button-outline" href=3D"https://substack.=
+com/app-link/post?publication_id=3D64099&post_id=3D153531990&utm_source=3Ds=
+ubstack&isFreemail=3Dtrue&submitLike=3Dtrue&token=3DeyJ1c2VyX2lkIjoxNjU1MTQ=
+yNTksInBvc3RfaWQiOjE1MzUzMTk5MCwicmVhY3Rpb24iOiLinaQiLCJpYXQiOjE3MzUxMTAzNj=
+IsImV4cCI6MTczNzcwMjM2MiwiaXNzIjoicHViLTY0MDk5Iiwic3ViIjoicmVhY3Rpb24ifQ.Ot=
+7dl-l_9ftXW2vHIrCeswEaWx8JrtYXBKEmjWJ85jA&utm_medium=3Demail&utm_campaign=
+=3Demail-reaction&r=3D2qjjmb" style=3D"font-family: system-ui, -apple-syste=
+m, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'A=
+pple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';display: inline-bloc=
+k;font-weight: 500;border: 1px solid rgb(0, 0, 0, .1);border-radius: 9999px=
+;text-transform: uppercase;font-size: 12px;line-height: 12px;padding: 9px 1=
+4px;text-decoration: none;color: rgb(119, 119, 119);"><img class=3D"icon" s=
+rc=3D"https://substackcdn.com/image/fetch/w_36,c_scale,f_png,q_auto:good,fl=
+_progressive:steep/https%3A%2F%2Fsubstack.com%2Ficon%2FLucideHeart%3Fv%3D4%=
+26height%3D36%26fill%3Dnone%26stroke%3D%2523808080%26strokeWidth%3D2" width=
+=3D"18" height=3D"18" style=3D"margin-right: 8px;min-width: 18px;min-height=
+: 18px;border: none;vertical-align: middle;max-width: 18px" alt=3D""><span =
+class=3D"email-button-text" style=3D"vertical-align: middle;">Like</span></=
+a></td></tr></tbody></table></td><td width=3D"8" style=3D"min-width: 8px"><=
+/td><td style=3D"vertical-align:middle;"><table role=3D"presentation" width=
+=3D"auto" border=3D"0" cellspacing=3D"0" cellpadding=3D"0"><tbody><tr><td a=
+lign=3D"center"><a class=3D"email-button-outline" href=3D"https://substack.=
+com/app-link/post?publication_id=3D64099&post_id=3D153531990&utm_source=3Ds=
+ubstack&utm_medium=3Demail&isFreemail=3Dtrue&comments=3Dtrue&token=3DeyJ1c2=
+VyX2lkIjoxNjU1MTQyNTksInBvc3RfaWQiOjE1MzUzMTk5MCwiaWF0IjoxNzM1MTEwMzYyLCJle=
+HAiOjE3Mzc3MDIzNjIsImlzcyI6InB1Yi02NDA5OSIsInN1YiI6InBvc3QtcmVhY3Rpb24ifQ.G=
+BMlJZRNSTRKNJVprYUHr6mwHKu_j2gw1eREbyOTKCw&r=3D2qjjmb&utm_campaign=3Demail-=
+half-magic-comments&action=3Dpost-comment&utm_source=3Dsubstack&utm_medium=
+=3Demail" style=3D"font-family: system-ui, -apple-system, BlinkMacSystemFon=
+t, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', '=
+Segoe UI Emoji', 'Segoe UI Symbol';display: inline-block;font-weight: 500;b=
+order: 1px solid rgb(0, 0, 0, .1);border-radius: 9999px;text-transform: upp=
+ercase;font-size: 12px;line-height: 12px;padding: 9px 14px;text-decoration:=
+ none;color: rgb(119, 119, 119);"><img class=3D"icon" src=3D"https://substa=
+ckcdn.com/image/fetch/w_36,c_scale,f_png,q_auto:good,fl_progressive:steep/h=
+ttps%3A%2F%2Fsubstack.com%2Ficon%2FLucideComments%3Fv%3D4%26height%3D36%26f=
+ill%3Dnone%26stroke%3D%2523808080%26strokeWidth%3D2" width=3D"18" height=3D=
+"18" style=3D"margin-right: 8px;min-width: 18px;min-height: 18px;border: no=
+ne;vertical-align: middle;max-width: 18px" alt=3D""><span class=3D"email-bu=
+tton-text" style=3D"vertical-align: middle;">Comment</span></a></td></tr></=
+tbody></table></td><td width=3D"8" style=3D"min-width: 8px"></td><td style=
+=3D"vertical-align:middle;"><table role=3D"presentation" width=3D"auto" bor=
+der=3D"0" cellspacing=3D"0" cellpadding=3D"0"><tbody><tr><td align=3D"cente=
+r"><a class=3D"email-button-outline" href=3D"https://substack.com/redirect/=
+2/eyJlIjoiaHR0cHM6Ly9vcGVuLnN1YnN0YWNrLmNvbS9wdWIvcmVmYWN0b3JpbmcvcC90aGUtY=
+mVzdC1vZi1yZWZhY3RvcmluZy1pbi0yMDI0P3V0bV9zb3VyY2U9c3Vic3RhY2smdXRtX21lZGl1=
+bT1lbWFpbCZ1dG1fY2FtcGFpZ249ZW1haWwtcmVzdGFjay1jb21tZW50JmFjdGlvbj1yZXN0YWN=
+rLWNvbW1lbnQmcj0ycWpqbWImdG9rZW49ZXlKMWMyVnlYMmxrSWpveE5qVTFNVFF5TlRrc0luQn=
+ZjM1JmYVdRaU9qRTFNelV6TVRrNU1Dd2lhV0YwSWpveE56TTFNVEV3TXpZeUxDSmxlSEFpT2pFM=
+016YzNNREl6TmpJc0ltbHpjeUk2SW5CMVlpMDJOREE1T1NJc0luTjFZaUk2SW5CdmMzUXRjbVZo=
+WTNScGIyNGlmUS5HQk1sSlpSTlNUUktOSlZwcllVSHI2bXdIS3VfajJndzFlUkVieU9US0N3Iiw=
+icCI6MTUzNTMxOTkwLCJzIjo2NDA5OSwiZiI6dHJ1ZSwidSI6MTY1NTE0MjU5LCJpYXQiOjE3Mz=
+UxMTAzNjIsImV4cCI6MTczNzcwMjM2MiwiaXNzIjoicHViLTAiLCJzdWIiOiJsaW5rLXJlZGlyZ=
+WN0In0.rJQwJrjNp4-E23qX_zK8husbH4wuGXZEdfVs4GKhdMo?&utm_source=3Dsubstack&u=
+tm_medium=3Demail" style=3D"font-family: system-ui, -apple-system, BlinkMac=
+SystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color =
+Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';display: inline-block;font-weig=
+ht: 500;border: 1px solid rgb(0, 0, 0, .1);border-radius: 9999px;text-trans=
+form: uppercase;font-size: 12px;line-height: 12px;padding: 9px 14px;text-de=
+coration: none;color: rgb(119, 119, 119);"><img class=3D"icon" src=3D"https=
+://substackcdn.com/image/fetch/w_36,c_scale,f_png,q_auto:good,fl_progressiv=
+e:steep/https%3A%2F%2Fsubstack.com%2Ficon%2FNoteForwardIcon%3Fv%3D4%26heigh=
+t%3D36%26fill%3Dnone%26stroke%3D%2523808080%26strokeWidth%3D2" width=3D"18"=
+ height=3D"18" style=3D"margin-right: 8px;min-width: 18px;min-height: 18px;=
+border: none;vertical-align: middle;max-width: 18px" alt=3D""><span class=
+=3D"email-button-text" style=3D"vertical-align: middle;">Restack</span></a>=
+</td></tr></tbody></table></td></tr></tbody></table></td><td align=3D"right=
+"><table role=3D"presentation" width=3D"auto" border=3D"0" cellspacing=3D"0=
+" cellpadding=3D"0"><tbody><tr></tr></tbody></table></td></tr></tbody></tab=
+le></td></tr><tr height=3D"16"><td height=3D"16" style=3D"font-size:0px;lin=
+e-height:0;">&nbsp;</td></tr></tbody></table><div class=3D"footer _footer_1=
+1ym1_1" style=3D"color: rgb(119, 119, 119);text-align: center;font-size: 16=
+px;line-height: 26px;padding: 24px 0;"><div style=3D"font-size: 16px;line-h=
+eight: 26px;padding-bottom: 24px"><p class=3D"pencraft pc-reset _color-seco=
+ndary_h3mln_169 _size-12_h3mln_35 _reset_h3mln_1 small _meta_11ym1_14" styl=
+e=3D"list-style: none;font-family: system-ui, -apple-system, BlinkMacSystem=
+Font, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji'=
+, 'Segoe UI Emoji', 'Segoe UI Symbol';padding-bottom: 0;font-size: 12px;lin=
+e-height: 16px;margin: 0;color: rgb(119, 119, 119);text-decoration: unset;"=
+>&#169; 2024 <span>Refactoring ETS</span><br>Via Innocenzo X, 29, 00152, Ro=
+me, Italy <br><a href=3D"https://substack.com/redirect/2/eyJlIjoiaHR0cHM6Ly=
+9yZWZhY3RvcmluZy5mbS9hY3Rpb24vZGlzYWJsZV9lbWFpbD90b2tlbj1leUoxYzJWeVgybGtJa=
+m94TmpVMU1UUXlOVGtzSW5CdmMzUmZhV1FpT2pFMU16VXpNVGs1TUN3aWFXRjBJam94TnpNMU1U=
+RXdNell5TENKbGVIQWlPakUzTmpZMk5EWXpOaklzSW1semN5STZJbkIxWWkwMk5EQTVPU0lzSW5=
+OMVlpSTZJbVJwYzJGaWJHVmZaVzFoYVd3aWZRLlRDNzJhUmc1ZG15MFZjTlN2UjIta2c4MWkxb0=
+4wMkVFd010VHdEN28yTUkiLCJwIjoxNTM1MzE5OTAsInMiOjY0MDk5LCJmIjp0cnVlLCJ1IjoxN=
+jU1MTQyNTksImlhdCI6MTczNTExMDM2MiwiZXhwIjoxNzM3NzAyMzYyLCJpc3MiOiJwdWItMCIs=
+InN1YiI6ImxpbmstcmVkaXJlY3QifQ.g849zTIBfmz3ihvAcBSS0whH6yZK_2rXeC2YVo7KbGo?=
+" style=3D"text-decoration: underline;color: rgb(119, 119, 119);"><span sty=
+le=3D"color: rgb(119, 119, 119);text-decoration: underline;">Unsubscribe</s=
+pan></a></p></div><p class=3D"_footerSection_11ym1_5 small powered-by-subst=
+ack" style=3D"padding: 0 24px;font-size: 12px;line-height: 20px;margin: 0;c=
+olor: rgb(119, 119, 119);font-family: system-ui, -apple-system, BlinkMacSys=
+temFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emo=
+ji', 'Segoe UI Emoji', 'Segoe UI Symbol';padding-bottom: 0;margin-top: 0;">=
+<a href=3D"https://substack.com/redirect/4d1ff5c6-d231-485f-bf78-d1f93270c0=
+ed?j=3DeyJ1IjoiMnFqam1iIn0._yFj7cFxGjz5bZZUkxbaCR2rXsCVHshhQCfNRm70NXU" sty=
+le=3D"color: rgb(119, 119, 119);text-decoration: none;display: inline-block=
+;margin: 0 4px;"><img src=3D"https://substackcdn.com/image/fetch/w_262,c_li=
+mit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack.com%2Fim=
+g%2Femail%2Fgeneric-app-button%402x.png" srcset=3D"https://substackcdn.com/=
+image/fetch/w_131,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%=
+2F%2Fsubstack.com%2Fimg%2Femail%2Fgeneric-app-button.png, https://substackc=
+dn.com/image/fetch/w_262,c_limit,f_auto,q_auto:good,fl_progressive:steep/ht=
+tps%3A%2F%2Fsubstack.com%2Fimg%2Femail%2Fgeneric-app-button%402x.png 2x, ht=
+tps://substackcdn.com/image/fetch/w_393,c_limit,f_auto,q_auto:good,fl_progr=
+essive:steep/https%3A%2F%2Fsubstack.com%2Fimg%2Femail%2Fgeneric-app-button%=
+403x.png 3x" width=3D"131" alt=3D"Get the app" height=3D"40" style=3D"max-w=
+idth: 550px;border: none !important;vertical-align: middle;"></a><a href=3D=
+"https://substack.com/redirect/2/eyJlIjoiaHR0cHM6Ly9zdWJzdGFjay5jb20vc2lnbn=
+VwP3V0bV9zb3VyY2U9c3Vic3RhY2smdXRtX21lZGl1bT1lbWFpbCZ1dG1fY29udGVudD1mb290Z=
+XImdXRtX2NhbXBhaWduPWF1dG9maWxsZWQtZm9vdGVyJmZyZWVTaWdudXBFbWFpbD1tYWNvc2U2=
+MDlAZ21haWwuY29tJnI9MnFqam1iIiwicCI6MTUzNTMxOTkwLCJzIjo2NDA5OSwiZiI6dHJ1ZSw=
+idSI6MTY1NTE0MjU5LCJpYXQiOjE3MzUxMTAzNjIsImV4cCI6MTczNzcwMjM2MiwiaXNzIjoicH=
+ViLTAiLCJzdWIiOiJsaW5rLXJlZGlyZWN0In0.v3MUklm0Sw8ysSLf3Mqa3J7FDUIajURJYF7jA=
+MOlcbc?" style=3D"color: rgb(119, 119, 119);text-decoration: none;display: =
+inline-block;margin: 0 4px;"><img src=3D"https://substackcdn.com/image/fetc=
+h/w_270,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubst=
+ack.com%2Fimg%2Femail%2Fpublish-button%402x.png" srcset=3D"https://substack=
+cdn.com/image/fetch/w_135,c_limit,f_auto,q_auto:good,fl_progressive:steep/h=
+ttps%3A%2F%2Fsubstack.com%2Fimg%2Femail%2Fpublish-button.png, https://subst=
+ackcdn.com/image/fetch/w_270,c_limit,f_auto,q_auto:good,fl_progressive:stee=
+p/https%3A%2F%2Fsubstack.com%2Fimg%2Femail%2Fpublish-button%402x.png 2x, ht=
+tps://substackcdn.com/image/fetch/w_405,c_limit,f_auto,q_auto:good,fl_progr=
+essive:steep/https%3A%2F%2Fsubstack.com%2Fimg%2Femail%2Fpublish-button%403x=
+.png 3x" width=3D"135" alt=3D"Start writing" height=3D"40" style=3D"max-wid=
+th: 550px;border: none !important;vertical-align: middle;"></a></p></div></=
+div></td><td></td></tr></tbody></table><img src=3D"https://eotrx.substackcd=
+n.com/open?token=3DeyJtIjoiPDIwMjQxMjI1MDcwMTMyLjMuZWMyYjEzMTVjYzM3ZjNiOEBt=
+ZzIuc3Vic3RhY2suY29tPiIsInUiOjE2NTUxNDI1OSwiciI6Im1hY29zZTYwOUBnbWFpbC5jb20=
+iLCJkIjoibWcyLnN1YnN0YWNrLmNvbSIsInAiOjE1MzUzMTk5MCwidCI6Im5ld3NsZXR0ZXIiLC=
+JhIjoiZXZlcnlvbmUiLCJzIjo2NDA5OSwiYyI6InBvc3QiLCJmIjp0cnVlLCJwb3NpdGlvbiI6I=
+mJvdHRvbSIsImlhdCI6MTczNTExMDM2MiwiZXhwIjoxNzM3NzAyMzYyLCJpc3MiOiJwdWItMCIs=
+InN1YiI6ImVvIn0.J3aw1ASZRQlY0-Uh6QE1iTtB9755CMVry_7_6Wn-2J8" alt=3D"" width=
+=3D"1" height=3D"1" border=3D"0" style=3D"height:1px !important;width:1px !=
+important;border-width:0 !important;margin-top:0 !important;margin-bottom:0=
+ !important;margin-right:0 !important;margin-left:0 !important;padding-top:=
+0 !important;padding-bottom:0 !important;padding-right:0 !important;padding=
+-left:0 !important;"/><img width=3D"1" height=3D"1" alt=3D"" src=3D"https:/=
+/email.mg2.substack.com/o/eJxE0Euq5SAQxvHVXIdBrWh04FpCqZW0dNSDj9Nk9815wJ1-B=
+X9-VMBBZ223e9Q-WHRrFEYZRk5soITgoIFRxnTtJxVqOCjuOH6vUmnD_jgiozVEiNZwfWwbYAR_=
+IHKj6SCxseQkl6uQUvGNC5ALLBSkFyBUCLAd4M3PyvMplz59Hxj-LqFmlvp-NHoD3GiT2Iu544y=
+JSiBHT2p3Ld85RScUKBDW8s8y7ge5Qv_6RWNQY4_p91BzniWNe6eC_qL4DU9_pYAj1fIK6ZVby5=
+rLGGonze3Pys8X483q08eaMRXX6MAwakvlZOPzxNmpvS1aKbFKZdnTyf8BAAD__40Ydug"></bo=
+

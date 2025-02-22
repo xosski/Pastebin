@@ -1,0 +1,165 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
+)
+
+func main() {
+	inputFile := "/home/kali/Desktop/filename.repo.txt"
+	outputFile := "/home/kali/Desktop/repo.txt"
+
+	// Open the input file
+	file, err := os.Open(inputFile)
+	if err != nil {
+		log.Fatalf("Error opening input file: %v\n", err)
+	}
+	defer file.Close()
+
+	// Create or truncate the output file
+	out, err := os.Create(outputFile)
+	if err != nil {
+		log.Fatalf("Error creating output file: %v\n", err)
+	}
+	defer out.Close()
+
+	// Prepare a writer for the output file
+	writer := bufio.NewWriter(out)
+
+	// Prepare a wait group for concurrency
+	var wg sync.WaitGroup
+
+	// Create a buffered channel to limit the number of concurrent requests
+	concurrencyLimit := 10
+	semaphore := make(chan struct{}, concurrencyLimit)
+
+	// Read each line from the input file
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		query := strings.TrimSpace(scanner.Text())
+		if query == "" {
+			continue
+		}
+
+		// Increment wait group for each query
+		wg.Add(1)
+
+		// Acquire a spot in the semaphore before sending the request
+		semaphore <- struct{}{}
+
+		// Go routine to handle each query concurrently
+		go func(query string) {
+			defer wg.Done() // Decrement wait group when done
+			// Construct the search URL
+			url := fmt.Sprintf("http://github.com/search?q=%s&type=repositories", query)
+
+			// Perform the HTTP GET request
+			resp, err := http.Get(url)
+			if err != nil {
+				log.Printf("Error querying GitHub for %s: %v\n", query, err)
+				<-semaphore // Release the semaphore spot
+				return
+			}
+
+			// Handle rate limit
+			if resp.StatusCode == 429 {
+				log.Printf("Rate limit exceeded for %s. Sleeping for 30 seconds...\n", query)
+				resp.Body.Close()
+				<-semaphore // Release the semaphore spot
+				time.Sleep(30 * time.Second) // Wait before retrying
+				return
+			}
+
+			// Handle non-OK status codes
+			if resp.StatusCode != http.StatusOK {
+				log.Printf("Non-OK HTTP status for %s: %d\n", query, resp.StatusCode)
+				resp.Body.Close()
+				<-semaphore // Release the semaphore spot
+				return
+			}
+
+			// Parse and write results
+			parseAndWriteResults(resp.Body, writer)
+
+			// Close the response body
+			resp.Body.Close()
+
+			// Add a delay to avoid hitting rate limits
+			time.Sleep(1 * time.Second) // 1 second delay between requests
+
+			// Release the semaphore spot
+			<-semaphore
+		}(query)
+	}
+
+	// Wait for all goroutines to finish
+	wg.Wait()
+
+	if err := scanner.Err(); err != nil {
+		log.Printf("Error reading input file: %v\n", err)
+	}
+
+	// Flush the writer buffer
+	if err := writer.Flush(); err != nil {
+		log.Printf("Error flushing output file: %v\n", err)
+	}
+}
+
+func parseAndWriteResults(body io.Reader, writer *bufio.Writer) {
+	// Read the body as a string
+	buf := new(strings.Builder)
+	_, err := io.Copy(buf, body)
+	if err != nil {
+		log.Printf("Error reading response body: %v\n", err)
+		return
+	}
+	content := buf.String()
+
+	// Define the regex pattern to extract valid repo links
+	pattern := `href="/([^/]+/[^/]+)"`
+
+	// Compile the regex
+	re := regexp.MustCompile(pattern)
+
+	// Find all matches
+	matches := re.FindAllStringSubmatch(content, -1)
+
+	// Define unwanted substrings to filter out
+	unwanted := []string{
+		"opensearch.xml", "manifest.json", "login?return_to=", "resources/",
+		"sponsors", "stargazers", "enterprise", "features/copilot#enterprise",
+		"premium-support", "signup",
+	}
+
+	// Write filtered matches to the output file
+	for _, match := range matches {
+		if len(match) > 1 {
+			fullURL := "https://github.com/" + match[1]
+			if !isUnwanted(fullURL, unwanted) {
+				_, err := writer.WriteString(fullURL + "\n")
+				if err != nil {
+					log.Printf("Error writing to output file: %v\n", err)
+					return
+				}
+			}
+		}
+	}
+}
+
+// Helper function to check if a URL is unwanted
+func isUnwanted(url string, unwanted []string) bool {
+	for _, u := range unwanted {
+		if strings.Contains(url, u) {
+			return true
+		}
+	}
+	return false
+}

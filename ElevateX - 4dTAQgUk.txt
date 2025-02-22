@@ -1,0 +1,148 @@
+#include <linux/kernel.h>
+#include <linux/syscalls.h>
+#include <linux/slab.h>  // For memory allocation
+#include <linux/list.h>  // For linked list implementation
+#include <linux/mutex.h> // For mutex lock to synchronize elevator state
+
+// Elevator state
+enum elevator_state { IDLE, MOVING, OFFLINE };
+
+// Elevator request type
+enum passenger_type { REGULAR = 0, VIP, MAINTENANCE, EMERGENCY };
+
+// Request structure
+struct elevator_request {
+    int start_floor;
+    int destination_floor;
+    enum passenger_type type;
+    struct list_head list;
+};
+
+// Elevator structure
+struct elevator {
+    enum elevator_state state;
+    int current_floor;
+    int num_passengers;
+    struct list_head request_queue;
+    struct mutex lock;  // Mutex for synchronizing elevator operations
+};
+
+// Initialize elevator structure
+static struct elevator *elevator = NULL;
+
+// Start elevator system
+SYSCALL_DEFINE0(start_elevator) {
+    if (elevator) {
+        // Elevator is already active
+        return -EINVAL;
+    }
+
+    elevator = kmalloc(sizeof(struct elevator), GFP_KERNEL);
+    if (!elevator) {
+        // Memory allocation failed
+        return -ENOMEM;
+    }
+
+    // Initialize the elevator state
+    elevator->state = IDLE;
+    elevator->current_floor = 1;
+    elevator->num_passengers = 0;
+    INIT_LIST_HEAD(&elevator->request_queue);
+    mutex_init(&elevator->lock);
+
+    printk(KERN_INFO "Elevator started\n");
+    return 0;  // Successfully started
+}
+
+// Issue a request to the elevator system
+SYSCALL_DEFINE3(issue_request, int, start_floor, int, destination_floor, int, type) {
+    if (!elevator) {
+        // Elevator is not active
+        return -ENODEV;
+    }
+
+    // Validate request parameters
+    if (start_floor < 1 || start_floor > 10 || destination_floor < 1 || destination_floor > 10 || type < 0 || type > 3) {
+        return -EINVAL;  // Invalid request parameters
+    }
+
+    struct elevator_request *new_request;
+    new_request = kmalloc(sizeof(struct elevator_request), GFP_KERNEL);
+    if (!new_request) {
+        return -ENOMEM;
+    }
+
+    // Initialize the new request
+    new_request->start_floor = start_floor;
+    new_request->destination_floor = destination_floor;
+    new_request->type = type;
+
+    // Add the new request to the queue
+    mutex_lock(&elevator->lock);
+    list_add_tail(&new_request->list, &elevator->request_queue);
+    mutex_unlock(&elevator->lock);
+
+    printk(KERN_INFO "Request added: Start floor %d, Destination floor %d, Passenger type %d\n", start_floor, destination_floor, type);
+
+    return 0;  // Valid request
+}
+
+// Process elevator requests
+static void process_requests(void) {
+    struct elevator_request *request, *tmp;
+
+    mutex_lock(&elevator->lock);
+
+    // Process the requests in the queue
+    list_for_each_entry_safe(request, tmp, &elevator->request_queue, list) {
+        if (elevator->state != MOVING) {
+            // If the elevator is not moving, start moving to the requested floor
+            elevator->state = MOVING;
+            printk(KERN_INFO "Elevator moving from floor %d to floor %d\n", elevator->current_floor, request->start_floor);
+            elevator->current_floor = request->start_floor;
+
+            // Move to the destination floor
+            printk(KERN_INFO "Elevator moving to destination floor %d\n", request->destination_floor);
+            elevator->current_floor = request->destination_floor;
+
+            // Simulate passengers arriving
+            elevator->num_passengers++;
+
+            // After processing the request, remove it from the queue
+            list_del(&request->list);
+            kfree(request);  // Free the memory for the processed request
+        }
+    }
+
+    elevator->state = IDLE;  // Return to IDLE state after processing all requests
+    mutex_unlock(&elevator->lock);
+}
+
+// Stop the elevator system
+SYSCALL_DEFINE0(stop_elevator) {
+    if (!elevator) {
+        // Elevator is not active
+        return -ENODEV;
+    }
+
+    // Ensure there are no passengers before stopping
+    if (elevator->num_passengers > 0) {
+        return -EBUSY;  // Passengers are still onboard, cannot stop
+    }
+
+    // Deactivate the elevator system and free memory
+    mutex_lock(&elevator->lock);
+    kfree(elevator);
+    elevator = NULL;
+    mutex_unlock(&elevator->lock);
+
+    printk(KERN_INFO "Elevator stopped\n");
+    return 0;  // Successfully stopped
+}
+
+// Helper function to simulate elevator operations periodically (e.g., on a timer or tasklet)
+void elevator_tasklet(void) {
+    if (elevator) {
+        process_requests();
+    }
+}

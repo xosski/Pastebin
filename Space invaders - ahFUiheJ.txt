@@ -1,0 +1,185 @@
+import turtle
+import random
+import time
+
+# Game setup
+koko = 1000
+turtle.bgcolor("black")
+turtle.speed(0)
+turtle.ht()
+turtle.setundobuffer(1)
+turtle.tracer(1)
+
+# Define Sprite class
+class Sprite(turtle.Turtle):
+    def __init__(self, spriteshape, color, startx, starty):
+        turtle.Turtle.__init__(self, shape=spriteshape)
+        self.speed(0)
+        self.penup()
+        self.color(color)
+        self.goto(startx, starty)
+        self.speed = 0.1
+
+    def move(self):
+        self.fd(self.speed)
+
+        # Boundary detection (prevents sprite from leaving screen)
+        if self.xcor() > koko/2 - 10:
+            self.setx(koko/2 - 10)
+            self.rt(60)
+
+        if self.xcor() < -koko/2 + 10:
+            self.setx(-koko/2 + 10)
+            self.rt(60)
+
+        if self.ycor() > koko/2 - 10:
+            self.sety(koko/2 - 10)
+            self.rt(60)
+
+        if self.ycor() < -koko/2 + 10:
+            self.sety(-koko/2 + 10)
+            self.rt(60)
+
+# Player class inheriting Sprite
+class Player(Sprite):
+    def __init__(self, spriteshape, color, startx, starty):
+        Sprite.__init__(self, spriteshape, color, startx, starty)
+        self.speed = 3
+        self.lives = 3
+
+    def turn_left(self):
+        self.lt(45)
+
+    def turn_right(self):
+        self.rt(45)
+
+    def accelerate(self):
+        if self.speed < 7:
+            self.speed += 0.2
+
+    def decelerate(self):
+        if self.speed > -5:
+            self.speed -= 0.2
+
+    def shoot(self):
+        bullet = Bullet("square", "yellow", self.xcor(), self.ycor())
+        bullet.setheading(90)
+        return bullet
+
+# Bullet class
+class Bullet(Sprite):
+    def __init__(self, spriteshape, color, startx, starty):
+        Sprite.__init__(self, spriteshape, color, startx, starty)
+        self.speed = 10
+
+    def move(self):
+        self.fd(self.speed)
+
+# Enemy class
+class Enemy(Sprite):
+    def __init__(self, spriteshape, color, startx, starty):
+        Sprite.__init__(self, spriteshape, color, startx, starty)
+        self.speed = 2
+
+    def move(self):
+        self.fd(self.speed)
+        # Boundary check to reverse direction and move down
+        if self.xcor() > koko/2 - 10 or self.xcor() < -koko/2 + 10:
+            self.rt(180)
+            self.sety(self.ycor() - 30)
+
+# Game class
+class Game:
+    def __init__(self):
+        self.level = 1
+        self.score = 0
+        self.state = "playing"
+        self.pen = turtle.Turtle()
+        self.lives = 3
+
+    def draw_border(self):
+        self.pen.speed(0)
+        self.pen.color("white")
+        self.pen.pensize(3)
+        self.pen.penup()
+        self.pen.goto(-koko/2, koko/2)
+        self.pen.pendown()
+        for _ in range(4):
+            self.pen.fd(koko)
+            self.pen.rt(90)
+        self.pen.penup()
+        self.pen.ht()
+
+    def update_score(self):
+        self.pen.clear()
+        self.pen.color("white")
+        self.pen.penup()
+        self.pen.goto(-koko/2 + 10, koko/2 - 30)
+        self.pen.write(f"Score: {self.score}  Lives: {self.lives}", font=("Arial", 16, "normal"))
+
+    def game_over(self):
+        self.pen.clear()
+        self.pen.color("red")
+        self.pen.penup()
+        self.pen.goto(0, 0)
+        self.pen.write("GAME OVER", align="center", font=("Arial", 24, "normal"))
+        self.pen.goto(0, -30)
+        self.pen.write(f"Final Score: {self.score}", align="center", font=("Arial", 16, "normal"))
+
+# Initialize the game
+game = Game()
+game.draw_border()
+
+# Create the player
+player = Player("triangle", "white", 0, -koko/2 + 50)
+
+# Create enemies
+enemies = []
+for _ in range(5):
+    enemy = Enemy("circle", "red", random.randint(-koko//2 + 10, koko//2 - 10), random.randint(koko//2 - 50, koko//2 - 200))
+    enemies.append(enemy)
+
+# Keyboard bindings
+turtle.onkey(player.turn_left, "Left")
+turtle.onkey(player.turn_right, "Right")
+turtle.onkey(player.accelerate, "Up")
+turtle.onkey(player.decelerate, "Down")
+turtle.onkey(lambda: player.shoot(), "space")
+turtle.listen()
+
+# Main game loop
+bullets = []
+while game.state == "playing":
+    for bullet in bullets[:]:
+        bullet.move()
+        # Check if bullet hits an enemy
+        for enemy in enemies[:]:
+            if bullet.distance(enemy) < 20:
+                bullet.hideturtle()
+                enemy.hideturtle()
+                bullets.remove(bullet)
+                enemies.remove(enemy)
+                game.score += 10
+                break
+
+    for enemy in enemies:
+        enemy.move()
+
+    # Check for collision between player and enemies
+    for enemy in enemies[:]:
+        if player.distance(enemy) < 20:
+            enemy.hideturtle()
+            enemies.remove(enemy)
+            game.lives -= 1
+            if game.lives == 0:
+                game.state = "game_over"
+                game.game_over()
+                break
+
+    # Update score and lives
+    game.update_score()
+
+    time.sleep(0.02)
+
+# End of game
+input("Press Enter to exit...")
