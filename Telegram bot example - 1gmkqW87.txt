@@ -9,7 +9,7 @@ import os
 load_dotenv()
 
 # Token del bot Telegram
-TELEGRAM_TOKEN = os.getenv("7312830464:AAG4kVEPiXY2tP4wK7UZW8MrSWbRn3QPnNM")
+TELEGRAM_TOKEN = os.getenv("Token Example")
 
 # Istruzioni di contesto da dare a Sydney
 contesto_iniziale = """
