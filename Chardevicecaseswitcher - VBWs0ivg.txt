@@ -1,0 +1,152 @@
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/i2c.h>
+#include <linux/utsname.h>
+#include <linux/timekeeping.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/slab.h>
+#include <linux/moduleparam.h>
+#include <linux/uaccess.h>  // for copy_from_user, copy_to_user
+
+MODULE_LICENSE("GPL");
+
+static char *local_buf;
+static int local_buf_size = 10;  // Default buffer size
+static int hello_count = 1;
+static dev_t hello_dev;
+static struct cdev hello_cdev;
+static ssize_t device_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos);
+static ssize_t device_read(struct file *file, char __user *buf, size_t count, loff_t *ppos);
+static long device_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+
+static char *whom = "world";
+module_param(whom, charp, 0);
+module_param(local_buf_size, int, 0644);  // Allow modifying buffer size from user
+
+static const struct file_operations fops = 
+{
+    .read = device_read,
+    .write = device_write,
+    .unlocked_ioctl = device_ioctl
+};
+
+static ssize_t device_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos) {
+    int to_transfer = min(local_buf_size - (int)(*ppos), count);
+    if (to_transfer == 0) {
+        return 0;  // No more data to write
+    }
+
+    if (copy_from_user(local_buf + (int)(*ppos), buf, to_transfer)) {
+        return -EFAULT;
+    } else {
+        *ppos += to_transfer;
+        return to_transfer;
+    }
+}
+
+static ssize_t device_read(struct file *file, char __user *buf, size_t count, loff_t *ppos) {
+    int len = strlen(local_buf + (int)(*ppos));
+    int to_transfer = min(len, count);
+    if (to_transfer == 0) {
+        return 0;  // No more data to read
+    }
+
+    if (copy_to_user(buf, local_buf + (int)(*ppos), to_transfer)) {
+        return -EFAULT;
+    } else {
+        *ppos += to_transfer;
+        return to_transfer;
+    }
+}
+
+/* File ioctl function to convert the buffer content */
+static long device_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
+    pr_info("IOCTL command received: %u\n", cmd);
+
+    switch (cmd) {
+    case 0:  // Convert buffer to lowercase
+        pr_info("Converting buffer to lowercase.\n");
+        for (int i = 0; i < local_buf_size; i++) {
+            if (local_buf[i] >= 'A' && local_buf[i] <= 'Z') {
+                local_buf[i] += 32;  // Convert to lowercase
+            }
+        }
+        break;
+
+    case 1:  // Convert buffer to uppercase
+        pr_info("Converting buffer to uppercase.\n");
+        for (int i = 0; i < local_buf_size; i++) {
+            if (local_buf[i] >= 'a' && local_buf[i] <= 'z') {
+                local_buf[i] -= 32;  // Convert to uppercase
+            }
+        }
+        break;
+
+    default:
+        pr_info("Error, command not supported.\n");
+        return -EINVAL;  // Return invalid argument error for unsupported command
+    }
+
+    return 0;
+}
+
+static int __init hello_init(void) {
+    int err;
+
+    pr_alert("Hello %s. You are currently using Linux %s\n", whom, init_uts_ns.name.release);
+
+    // Validate the buffer size parameter
+    if (local_buf_size <= 0) {
+        pr_err("Invalid buffer size. It should be greater than 0.\n");
+        return -EINVAL;
+    }
+
+    // Dynamically allocate buffer for storing data
+    local_buf = kzalloc(local_buf_size, GFP_KERNEL);
+    if (!local_buf) {
+        err = -ENOMEM;
+        goto err_exit;
+    }
+
+    // Register the character device
+    if (alloc_chrdev_region(&hello_dev, 0, hello_count, "hello")) {
+        err = -ENODEV;
+        goto err_free_buff;
+    }
+
+    pr_info("Major: %d, Minor: %d\n", MAJOR(hello_dev), MINOR(hello_dev));
+
+    // Initialize and add the character device
+    cdev_init(&hello_cdev, &fops);
+    if (cdev_add(&hello_cdev, hello_dev, hello_count)) {
+        err = -ENODEV;
+        goto err_dev_unregister;
+    }
+
+    return 0;
+
+err_dev_unregister:
+    unregister_chrdev_region(hello_dev, hello_count);
+
+err_free_buff:
+    kfree(local_buf);
+
+err_exit:
+    return err;
+}
+
+static void __exit hello_exit(void) {
+    pr_alert("Goodbye %s. Time elapsed: %lld seconds\n", whom, ktime_get_real_seconds());
+    cdev_del(&hello_cdev);
+    unregister_chrdev_region(hello_dev, hello_count);
+    kfree(local_buf);
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Marko Puskovic");
+MODULE_DESCRIPTION("Character Device Module with Read, Write, and IOCTL (Uppercase/Lowercase) Operations");
+MODULE_VERSION("1.0");

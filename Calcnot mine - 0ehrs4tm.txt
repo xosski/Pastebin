@@ -1,0 +1,175 @@
+#include <bits/stdc++.h>
+using ll = long long;
+#define int long long
+#define pb push_back
+ 
+using namespace std;
+ 
+const ll LLINF = 0x3f3f3f3f3f3f3f3f;
+const ll INF = 1e18+10;
+const int MAX = 5;
+ 
+vector<int> programmer, sports;
+ 
+struct Dinitz {
+  struct Edge {
+    int v, u, cap, flow=0, cost;
+    Edge(int v, int u, int cap, int cost) : v(v), u(u), cap(cap), cost(cost) {}
+  };
+ 
+  int n, s, t;
+  Dinitz(int n, int s, int t) : n(n), s(s), t(t) {
+    adj.resize(n);
+  }
+ 
+  int get_cost() {
+      flow();
+      return -cost;
+  }
+ 
+  vector<Edge> edges;
+  vector<vector<int>> adj;
+  void add_edge(int v, int u, int cap, int cost) {
+    edges.emplace_back(v, u, cap, cost);
+    adj[v].pb(edges.size()-1);
+    edges.emplace_back(u, v, 0, -cost);
+    adj[u].pb(edges.size()-1);
+  }
+ 
+  vector<int> dist;
+  bool spfa() {
+    dist.assign(n, LLINF);
+ 
+    queue<int> Q;
+    vector<bool> inqueue(n, false);
+ 
+    dist[s] = 0;
+    Q.push(s);
+    inqueue[s] = true;
+ 
+    vector<int> cnt(n);
+ 
+    while (!Q.empty()) {
+      int v = Q.front(); Q.pop();
+      inqueue[v] = false;
+ 
+      for (auto eid : adj[v]) {
+        auto const& e = edges[eid];
+        if (e.cap - e.flow <= 0) continue;
+        if (dist[e.u] > dist[e.v] + e.cost) {
+          dist[e.u] = dist[e.v] + e.cost;
+          if (!inqueue[e.u]) {
+            Q.push(e.u);
+            inqueue[e.u] = true;
+          }
+        }
+      }
+    }
+ 
+    return dist[t] != LLINF;
+  }
+ 
+  int cost = 0;
+  vector<int> ptr;
+  int dfs(int v, int f) {
+    if (v == t || f == 0) return f;
+    for (auto &cid = ptr[v]; cid < adj[v].size();) {
+      auto eid = adj[v][cid];
+      auto &e = edges[eid];
+      cid++;
+      if (e.cap - e.flow <= 0) continue;
+      if (dist[e.v] + e.cost != dist[e.u]) continue;
+      int newf = dfs(e.u, min(f, e.cap-e.flow));
+      if (newf == 0) continue;
+      e.flow += newf;
+      edges[eid^1].flow -= newf;
+      cost += e.cost * newf;
+      return newf;
+    }
+    return 0;
+  }
+ 
+  int total_flow = 0;
+  int flow() {
+    while (spfa()) {
+      ptr.assign(n, 0);
+      while (int newf = dfs(s, LLINF))
+        total_flow += newf;
+    }
+    return total_flow;
+  }
+ 
+  void recover_path() {
+      for (auto e : edges) {
+          if (e.v == 1 && e.flow > 0 && e.u > 0) {
+              programmer.pb(e.u - 2);
+          }
+ 
+ 
+          if (e.v == 2 && e.flow > 0 && e.u > 0) {
+              sports.pb(e.u - 2);
+          }
+      }
+  }
+};
+ 
+string s;
+int n;
+vector<int> p;
+ 
+int calc(char c, int j) {
+    if (s[j] == c && s[n - j - 1] == c) {
+        return max(p[j], p[n - j - 1]);
+    }
+ 
+    else if (s[j] == c) {
+        return p[j];
+    }
+ 
+    else if (s[n - j - 1] == c) {
+        return p[n - j - 1];
+    }
+ 
+    return 0;
+}
+ 
+int32_t main() {
+    ios::sync_with_stdio(false);
+    cin.tie(NULL);
+ 
+    cin >> n;
+    cin >> s;
+    p.resize(n);
+ 
+    for (int i = 0; i < n; i++) {
+        cin >> p[i];
+    }
+ 
+    Dinitz dinic = Dinitz(27 + n / 2 + n + 1, 0, 27 + n / 2 + n);
+ 
+    map<char, int> amount; 
+    for (int i = 0; i < n; i++) {
+        amount[s[i]]++;
+    }
+ 
+    for (char c = 'a'; c <= 'z'; c++) {
+        dinic.add_edge(0, c - 'a' + 1, amount[c], 0);
+ 
+        for (int j = 0; j < n / 2; j++) {
+          dinic.add_edge(c - 'a' + 1, j + 27, 1, -calc(c, j));
+        }
+    }
+ 
+    for (int j = 0; j < n / 2; j++) {
+        dinic.add_edge(j + 27, j + 27 + n / 2, 1, 0);
+        dinic.add_edge(j + 27, 27 + n / 2 + n - j - 1, 1, 0);
+    }
+ 
+    for (int i = 0; i < n; i++) {
+        dinic.add_edge(27 + n / 2 + i, 27 + n / 2 + n, 1, 0);
+    }
+ 
+    cout << dinic.get_cost() << '\n';
+ 
+    return 0;
+}

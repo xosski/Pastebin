@@ -1,0 +1,498 @@
+ 
+<!DOCTYPE html>
+<html>
+<head>
+		<title>Retail Sample (Accurate Online)</title>
+ 
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=1024, initial-scale=1, maximum-scale=2.0">
+	<link rel="icon" type="image/png" href="/accurate/images/favicon.png"/>
+ 
+	<!-- CSS -->
+	<link href="/accurate/css/metro/metro-bootstrap-newui.css?1951" rel="stylesheet" />
+	<link href="/accurate/css/metro/metro-bootstrap-responsive.css?1951" rel="stylesheet" />
+	<link href="/accurate/css/metro/iconFont.css?1951" rel="stylesheet" />
+	<link href="/accurate/css/busyload.min.css?1951" rel="stylesheet" type="text/css" />
+	<link href="/accurate/css/loading.css?1951" rel="stylesheet" type="text/css" />
+	<link href="/accurate/css/colorpicker.css?1951" rel="stylesheet" type="text/css" />
+	<link href="/accurate/css/slickgrid/slick.grid-newui.css?1951" rel="stylesheet" type="text/css" />
+	<link href="/accurate/css/slickgrid/slick-metro-theme-newui.css?1951" rel="stylesheet" type="text/css" />
+	<link href="/accurate/css/metro/metro-override-newui.css?1951" rel="stylesheet">
+	<link href="/accurate/css/jquery.calculator.css?1951" rel="stylesheet" type="text/css" />
+	<link href="/accurate/css/metro/style.css?1951" rel="stylesheet" />
+	<link href="/accurate/css/icons.css?1951" rel="stylesheet" />
+	<link href="/accurate/css/metro/loading-indicator.css?1951" rel="stylesheet" />
+	<link href="/accurate/css/flag.css?1951" rel="stylesheet" />
+	<link href="/accurate/css/fullcalendar.min.css?1951" rel="stylesheet" />
+	<link href="/accurate/css/fullcalendar.print.css?1951" rel="stylesheet" media="print" />
+	<link href="/accurate/css/nprogress.css?1951" rel="stylesheet" />
+	<link href="/accurate/css/accurate.css?1951" rel="stylesheet" />
+	<link href="/accurate/icon-font/style.css?1951" rel="stylesheet" />
+ 
+	<!-- CSS owl carousel -->
+	<link href="/accurate/css/owl/owl.carousel.css?1951" rel="stylesheet">
+	<link href="/accurate/css/owl/owl.theme.css?1951" rel="stylesheet">
+ 
+	<!-- CSS fancybox -->
+	<link href="/accurate/css/fancybox/jquery.fancybox-buttons.css?1951" rel="stylesheet">
+	<link href="/accurate/css/fancybox/jquery.fancybox-thumbs.css?1951" rel="stylesheet">
+	<link href="/accurate/css/fancybox/jquery.fancybox.css?1951" rel="stylesheet">
+ 
+		<!-- Google tag (gtag.js) -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-XT7FSJFKSB"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+		gtag('config', 'G-XT7FSJFKSB');
+	</script>
+ 
+	<!-- jQuery JS -->
+	<script src="/accurate/js/jquery/jquery-1.11.1.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery-ui-1.11.1.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.widget.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.viewport.js?1951" type="text/javascript"></script>
+ 
+	<!-- Third Party Library JS -->
+	<script src="/accurate/js/jquery/jquery.storageapi.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.event.drag-2.2.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.event.drop-2.2.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.ba-outside-events.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.topzindex.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.mousewheel.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/busyload.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.websocket-0.0.1.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.svginject.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/cursor_position.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.caretpixelpos.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/selection_range.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/string_splitter.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.number.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.maskedinput.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/autoNumeric.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/colorpicker.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.form.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.plugin.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.timeentry.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jQueryRotate3.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.media.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.calculator.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.multiupload.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.igormask.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/lz-string.js?1951"></script>
+	<script src="/accurate/js/moment.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/fullcalendar/fullcalendar.min.js?1951" type="text/javascript"></script>	
+	<script src="/accurate/js/nprogress.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/gravitated.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/serialized-ajax-handler.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/accurate-direct-print-client.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/report-event.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/marketplace-event.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/accurate-global-search.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/jquery/jquery.fileupload.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/sammy/sammy-latest.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/qrcode.min.js?1951" type="text/javascript"></script>
+		<script src="/accurate/js/fullcalendar/lang/id.js?1951" type="text/javascript"></script>
+ 
+	<!-- Language Pack -->
+	<script src="/accurate/js/lang.in_ID.js?1951" type="text/javascript"></script>
+ 
+	<!-- Metro Widget JS -->
+	<script src="/accurate/js/metro/metro-global.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-core.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-locale.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-touch-handler.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-hint.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-dialog.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-textfield.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-date-format.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-calendar.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-datepicker.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-textarea.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-textarea-dropdown.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-carousel.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-filefield.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-radio.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-checkbox.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-combobox.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-progressbar.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-button.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-dropdown.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-tab.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-scroll.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-notify.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-lookup.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-wizard.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-baloon.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-popover.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-slider.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/metro/metro-numberfield.js?1951" type="text/javascript"></script>
+ 
+	<!-- owl carousel -->
+	<script src="/accurate/js/owl/owl.carousel.js?1951" type="text/javascript"></script>
+ 
+	<!-- fancybox js -->
+	<script src="/accurate/js/fancybox/jquery.fancybox.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/fancybox/jquery.fancybox-thumbs.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/fancybox/jquery.fancybox-media.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/fancybox/jquery.fancybox-buttons.js?1951" type="text/javascript"></script>
+ 
+	<!--Knockout JS -->
+	<script src="/accurate/js/knockout/knockout-3.4.2.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/knockout/ko.dirtyflag.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/knockout/metro-knockout.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/knockout/knockout-switch-case.min.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/knockout/knockout-sortable.min.js?1951" type="text/javascript"></script>
+ 
+	<!-- Application JS -->
+	<script src="/accurate/js/app.js?1951" type="text/javascript"></script>
+ 
+	<!-- SlickGrid JS -->
+	<script src="/accurate/js/slickgrid/slick.core.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/slickgrid/slick.grid.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/slickgrid/plugins/slick.cellrangedecorator.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/slickgrid/plugins/slick.cellrangeselector.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/slickgrid/plugins/slick.rowselectionmodel.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/slickgrid/plugins/slick.cellselectionmodel.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/slickgrid/plugins/slick.rowmovemanager.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/slickgrid/slick.remotemodel.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/knockout/slickgrid-knockout.js?1951" type="text/javascript"></script>
+ 
+	<!-- Highcharts JS -->
+	<script src="/accurate/js/highcharts-8.1.2/highcharts.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/highcharts-8.1.2/highcharts-more.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/highcharts-8.1.2/modules/solid-gauge.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/highcharts-8.1.2/modules/gantt.js?1951" type="text/javascript"></script>
+	<script src="/accurate/js/highcharts-8.1.2/modules/draggable-points.js" type="text/javascript"></script>
+	<script src="/accurate/js/highcharts-8.1.2/modules/customEvents.js" type="text/javascript"></script>
+ 
+</head>
+<body class="metro" style="display: none;">
+	<script type="text/javascript">
+	$(window).load(function(){
+		jQuery.ajaxSettings.traditional = true;
+		app.classes.accurate = {};
+		app.setPathPrefix('accurate');
+		app.addStaticParam('1951',null);
+		app.handleHash = function(path) {
+			if(typeof acc == 'undefined' || acc._dsi == null || typeof $('body').data('mask-count') != 'undefined') {
+				setTimeout(function() {
+					app.handleHash(path);
+				}, 500);
+			} else {
+				acc.openModule(path);
+			}
+		};
+		app.init(['/accurate/js/base/BaseClass.js',
+			'/accurate/js/base/BaseRemoteDataLoaderClass.js',
+            '/accurate/js/base/BaseFeedbackClass.js',
+			'/accurate/js/base/BaseFormClass.js',
+			'/accurate/js/base/BaseAppIndexClass.js',
+			'/accurate/js/base/BaseMessagingClass.js',
+			'/accurate/js/base/BaseNotificationClass.js',
+			'/accurate/js/base/BaseAccurateFormClass.js',
+			'/accurate/js/base/BaseSingleModuleClass.js',
+			'/accurate/js/base/BaseDialogModuleClass.js',
+			'/accurate/js/base/ActionButtonClass.js',
+			'/accurate/js/base/BaseActionFormClass.js',
+		    '/accurate/js/base/BaseSortPagingClass.js',
+		    '/accurate/js/base/BaseModuleClass.js',
+		    '/accurate/js/base/BaseTransactionDetailFormClass.js',
+		    '/accurate/js/base/BaseTransactionItemDetailFormClass.js',
+		    '/accurate/js/base/BaseTransactionCopyFormClass.js',
+		    '/accurate/js/base/BaseTransactionModuleClass.js',
+		    '/accurate/js/base/BaseAccurateImportFormClass.js',
+		    '/accurate/js/base/BaseDashboardWidgetClass.js']);
+ 
+		mkpe.marketplaceHost = 'https://account.accurate.id';
+	});	
+	</script>
+	<div class="mask-wrapper">
+		<div id="main">
+		<script type="text/javascript">
+	$(window).load(function(){
+		app.initialized.subscribe(function(newValue) {
+			if (newValue) {
+				app.loadModel('accurate__index', 0, function(theModel) {
+					theModel._initComp();
+					theModel._init({
+						database: {"id":1400813,"uniqueId":"269e7648-6525-44c9-bb89-a458fa1a5809","alias":"Retail Sample","industryType":null,"licenseInfo":{"freeAddOnList":[""],"freeApiCount":0,"activationCodeCreateTime":null,"freeApplicationKey":[],"activationCodeValidUntil":null,"freeUserCount":0,"trial":false,"type":"SAMPLE"},"bgColor":"FFFFFF","databaseServer":{"ipAddress":"10.11.17.38","port":"5532","dbTool":"/usr/lib/postgresql/16/bin/"},"storageServer":null,"privateCloud":false,"sample":true,"education":false,"settingVersion":0,"accessUrl":"https://zeus.accurate.id","dataLogo":null},
+						moduleKey: null,
+						moduleParam: null,
+						_dsi: 'R01sRmNRdHYxSlMrNlZGYy9UQkliblZuNDFsbmxyVTA2Rnc3ZjVCSkFvRWxCekFwMS82eFRObWFmelVwNkFqRQ==',
+						hash: ''
+					});
+					$('body').fadeIn('slow', function() {
+						theModel.openController(theModel.database());
+ 
+						//app.loadView('accurate__chat__client', {},$('body'),$('.chat-container'), function(chat) {theModel.chat(chat)});
+						//app.loadView('accurate__notification__client', {},$('body'),$('.notif-container'), function(notif) {theModel.notif(notif)});
+					});
+				});
+			}
+		});
+	});
+	</script>
+ 
+ 
+	<div id="accurate__index--0">
+        <div class="application-container">
+		</div>
+		<div class="chat-container">
+		</div>
+		<div class="notif-container">
+		</div>
+	</div>
+		</div>
+ 
+		<div id="panel-result" style="display: none;"></div>
+ 
+		<div id="dialog-container" style="display: none;"></div>
+ 
+		<iframe id="sso-refresh" src="" style="display: none;"></iframe>
+ 
+		<form id="printer-form" target="printer-iframe" style="display: none"></form>
+<iframe id="printer-iframe" name="printer-iframe" src=""></iframe>
+		<div id="print-preview" style="display: none; left: 0; top: 0; width: 100%; height: 100%; position: fixed; background: #ddd; z-index: 1000;">
+	<div class="grid fluid no-margin" style="height: 100%;">
+		<div class="row no-margin" style="height: 100%;">
+			<div class="span10" style="height: 100%;position: relative;">
+				<div class="print-preview-panel">
+					<iframe id="print-preview-frame" name="print-preview-frame" frameborder="0" src="about:blank"></iframe>
+				</div>
+			</div>
+			<div class="span2 padding10" style="margin: 0 1%;">
+				<div class="grid fluid">
+					<div class="row no-margin">
+						<div class="span12">
+							<button id="print-preview-print" name="btnPrint"  class="navigation-button-shadow bg-primary-button tile-outline-button tile-color-button border-radius4-no-color" data-bind="metroButton:{}, click: function() { executePrint() }" style="width: 100%; margin-bottom: 10px;">
+								<i class="icn-report-print on-left"></i>
+								Cetak
+							</button>
+						</div>
+					</div>
+					<div class="row no-margin">
+						<div class="span12">
+							<button id="print-preview-excel" name="btnExportXls"  class="navigation-button-shadow bg-white-button tile-outline-button tile-blue-color-button border-radius4-no-color" data-bind="metroButton:{}, click: function() { executeExportXLS() }" style="width: 100%; margin-bottom: 3px;">
+								<i class="icn-transaction-xls-download on-left"></i>
+								Unduh XLS
+							</button>
+						</div>
+					</div>
+					<div class="row no-margin">
+						<div class="span12">
+							<button id="print-preview-excel" name="btnExportPdf" class="navigation-button-shadow bg-white-button tile-outline-button tile-blue-color-button border-radius4-no-color" data-bind="metroButton:{}, click: function() { executeExportPDF() }" style="width: 100%; margin-bottom: 3px;">
+								<i class="icn-transaction-pdf-download on-left"></i>
+								Unduh PDF
+							</button>
+						</div>
+					</div>
+					<!-- ko if: !acc.staticData.vasHasInstalled() && !acc.staticData.xignatureHasInstalled() && !acc.staticData.vidaHasInstalled()-->
+					<div class="row no-margin">
+						<div class="span12">
+							<button id="ematerai-install" name="btnEmaterai" class="navigation-button-shadow bg-white-button tile-outline-button tile-blue-color-button border-radius4-no-color button" data-bind="metroButton:{}, click: function() { learnEmaterai() }" style="width: 100%; margin-top: 10px; margin-bottom: 3px;">
+								e-Materai/e-Sign
+							</button>
+						</div>
+					</div>
+					<!-- /ko -->
+					<!-- ko if: acc.staticData.vasHasInstalled()-->
+					<div class="row no-margin">
+						<div class="dropdown span12">
+							<button id="vas-ematerai" name="btnVas" class="dropdown-toggle navigation-button-shadow bg-white-button tile-outline-button tile-blue-color-button border-radius4-no-color button" style="width: 100%; margin-top: 10px; margin-bottom: 3px;">
+								e-Meterai by VAS
+							</button>
+							 <ul style="top: 172px; overflow: hidden;" class="text-left dropdown-menu" data-bind="metroDropdown: {}">
+								<li><a href="#" data-bind="click: function() { executeVasEmaterai() }">Bubuhkan e-Meterai</a></li>
+								<!-- ko if: acc.staticData.vasUserLogin() != '' -->
+								<li><a href="#" data-bind="click: function() { logoutVas() }">Logout</a></li>
+								<!-- /ko -->
+								<li class="divider"></li>
+								<li><a href="https://ultimasolusindo.com/integrasi-e-materai-vas/" target="_blank" rel="noopener noreferrer" style="color: blue">Tutorial Fitur e-Meterai</a></li>
+								<li><a href="https://drive.google.com/file/d/110KgKZDnv6SECLyXeFX9yO6eRFRxDHTT/view?usp=sharing" target="_blank" rel="noopener noreferrer" style="color: blue">Tutorial Platform VAS e-Meterai</a></li>
+							</ul>
+						</div>
+					</div>
+					<!-- /ko -->
+					<!-- ko if: acc.staticData.xignatureHasInstalled()-->
+					<div class="row no-margin">
+						<div class="dropdown span12">
+							<button id="xignature-ematerai" name="btnXignature" class="dropdown-toggle navigation-button-shadow bg-white-button tile-outline-button tile-blue-color-button border-radius4-no-color button" style="width: 100%; margin-top: 10px; margin-bottom: 3px;">
+								e-Sign by Xignature
+							</button>
+							 <ul style="top: 172px; overflow: hidden;" class="text-left dropdown-menu" data-bind="metroDropdown: {}">
+								<li><a href="#" data-bind="click: function() { executeXignature() }">e-Sign Xignature</a></li>
+								<!-- ko if: acc.staticData.xignatureId() != '' -->
+								<li><a href="#" data-bind="click: function() { logoutXignature() }">Logout</a></li>
+								<!-- /ko -->
+							</ul>
+						</div>
+					</div>
+					<!-- /ko -->
+					<!-- ko if: acc.staticData.vidaHasInstalled()-->
+					<div class="row no-margin">
+						<div class="dropdown span12">
+							<button id="vida-sign" name="btnVida" class="dropdown-toggle navigation-button-shadow bg-white-button tile-outline-button tile-blue-color-button border-radius4-no-color button" style="width: 100%; margin-top: 10px; margin-bottom: 3px;">
+								e-Sign by Vida
+							</button>
+							 <ul style="top: 172px; overflow: hidden;" class="text-left dropdown-menu" data-bind="metroDropdown: {}">
+								<li><a href="#" data-bind="click: function() { executeVida() }">e-Sign Vida</a></li>
+								<!-- ko if: acc.staticData.vidaClientId() != '' -->
+								<li><a href="#" data-bind="click: function() { logoutVida() }">Logout</a></li>
+								<!-- /ko -->
+							</ul>
+						</div>
+					</div>
+					<!-- /ko -->
+					<!---
+					<div class="row no-margin">
+						<div class="span12">
+							<div class="margin5" data-bind="metroSlider: {position: 50, accuracy: 1, change: function(value, slider) { handleZoom(value) } }"></div>
+						</div>
+					</div>
+					-->
+					<div class="row no-margin">
+						<div class="span12">
+							<button id="print-preview-close" name="btnClose" class="navigation-button-shadow bg-red-aol tile-outline-button tile-color-button border-radius4-no-color"" data-bind="metroButton:{}, click: function() { hidePrintPreview() }" style="width: 100%; margin-top: 10px; margin-bottom: 3px;">
+								<i class="icn-transaction-close on-left"></i>
+								Tutup
+							</button>
+						</div>
+					</div>
+					<div id="direct-print-hint" class="print-preview-bottom-left-hint" style="display: none;">
+						<p>Mengalami kendala hasil cetakan printer dot-matrix ?</p>
+						<a href="https://drive.google.com/file/d/1EukN6qUyDNEYtgP-QMtbIq9wtmU4loBt" target="_blank">Download AOL Direct Print</a>
+					</div>
+					<div id="direct-print-outdated-hint" class="print-preview-bottom-left-hint" style="display: none;">
+						<p class="text-warning">Anda masih menggunakan AOL Direct Print versi lama</p>
+						<a href="https://drive.google.com/file/d/1EukN6qUyDNEYtgP-QMtbIq9wtmU4loBt" target="_blank">Update AOL Direct Print</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="print-preview-busy-mask" style="display: none; left: 0px; top: 0px;width: 100%; height: 100%; position: fixed; background: rgba(0, 0, 0, 0.5); z-index: 20001;">
+		<div id="print-preview-busy-mask-container" style="text-align: center; position: fixed; top: 46%; width: 400px; padding: 20px; left: calc(50% - 200px); background: rgb(226, 226, 226); border-radius: 3px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);">
+			<p id="print-preview-busy-mask-text">Mencetak menggunakan Direct Print ..</p>
+			<button id="print-preview-busy-mask-close" class="button small primary" data-bind="click: acc.hidePrintPreviewBusyMask">Tutup</button>
+		</div>
+	</div>
+</div>
+ 
+		<div id="error-dialog" title="Terjadi Permasalahan pada Pemrosesan" data-bind="metroDialog: {icon: 'icon-warning'}" style="display:none;">
+	<div class="container" style="width: auto !important;min-width: 500px !important; max-width: 600px !important; min-height: 80px !important;">
+		<div class="grid fluid no-margin">
+			<div class="row no-margin">
+				<div class="span2 text-center">
+					<img src="/accurate/new-images/pop-up-warning-icon.svg" style="max-width: 100% !important;" />
+				</div>
+				<div class="span10">
+					<div class="row no-margin">
+						<div class="span12">
+							<label class="no-margin">Silakan perbaiki permasalahan berikut ini:</label>
+						</div>
+					</div>
+					<div class="row no-margin">
+						<div class="span12">
+							<ul class="no-margin" data-bind="css: { unstyled: messages().length == 1 }">
+								<!-- ko foreach: messages -->
+								<li><label class="fg-crimson" style="white-space: pre-wrap;" data-bind="text: $data"></label></li>
+								<!-- /ko -->
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- ko if: buttons().length > 0 -->
+	<div class="button-container text-right">
+		<!-- ko foreach: buttons -->
+		<button type="button" data-bind="metroButton: config, text: label, click: handler, attr: { name: $data.config.buttonName }"></button>
+		<!-- /ko -->
+	</div>
+	<!-- /ko -->
+</div>
+		<div id="info-dialog" title="Informasi" data-bind="metroDialog: {shadow: true, icon: 'icon-info'}" style="display:none;">
+	<div class="container" style="width: auto !important;min-width: 400px !important; max-width: 600px !important;">
+		<div class="grid fluid no-margin">
+			<div class="row no-margin">
+				<div class="span2 text-center">
+					<img src="/accurate/new-images/pop-up-info-icon.svg" style="max-width: 100% !important;" />
+				</div>
+				<div class="span10">
+					<div class="row no-margin">
+						<div class="span12">
+							<ul class="no-margin" data-bind="css: { unstyled: messages().length == 1 }">
+								<!-- ko foreach: messages -->
+								<li><label data-bind="text: $data"></label></li>
+								<!-- /ko -->
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- ko if: buttons().length > 0 -->
+	<div class="button-container text-right">
+		<!-- ko foreach: buttons -->
+		<button type="button" data-bind="metroButton: config, text: label, click: handler, attr: { name: $data.config.buttonName }"></button>
+		<!-- /ko -->
+	</div>
+	<!-- /ko -->
+</div>
+		<div id="success-dialog" title="Proses Berhasil Dilakukan" data-bind="metroDialog: {icon: 'icon-smiley'}" style="display:none;">
+	<div class="container" style="width: auto !important;min-width: 400px !important; max-width: 600px !important;">
+		<div class="grid fluid no-margin">
+			<div class="row no-margin">
+				<div class="span2 text-center">
+					<img src="/accurate/new-images/pop-up-success-icon.svg" style="max-width: 100% !important;" />
+				</div>
+				<div class="span10">
+					<div class="row no-margin">
+						<div class="span12">
+							<ul class="no-margin" data-bind="css: { unstyled: messages().length == 1 }">
+								<!-- ko foreach: messages -->
+								<li><label data-bind="text: $data"></label></li>
+								<!-- /ko -->
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+		<div id="confirm-dialog" title="Konfirmasi" data-bind="metroDialog: {icon: 'icon-info', sysButtons : { btnClose : false }, overlayClickClose: false}" style="display:none;">
+	<div class="container" style="width: auto !important;min-width: 400px !important; max-width: 600px !important;">
+		<div class="grid fluid no-margin">
+			<div class="row no-margin">
+				<div class="span2 text-center">
+					<img src="/accurate/new-images/pop-up-confirm-icon.svg" style="max-width: 100% !important;" />
+				</div>
+				<div class="span10">
+					<div class="row no-margin">
+						<div class="span12">
+							<ul class="no-margin" data-bind="css: { unstyled: messages().length == 1 }">
+								<!-- ko foreach: messages -->
+								<li><label class="fg-crimson" data-bind="text: $data"></label></li>
+								<!-- /ko -->
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>	
+	<!-- ko if: buttons().length > 0 -->
+	<div class="button-container text-right">
+		<!-- ko foreach: buttons -->
+		<button type="button" data-bind="metroButton: config, text: label, click: handler, attr: { name: $data.config.buttonName }"></button>
+		<!-- /ko -->
+	</div>
+	<!-- /ko -->
+</div>
+	</div>
+</body>
+</html>

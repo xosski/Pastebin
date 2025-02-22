@@ -1,0 +1,41 @@
+Encapsulating
+from PIL import Image
+
+def embed_data(image_path, data, output_path):
+    image = Image.open(image_path)
+    binary_data = ''.join(format(ord(char), '08b') for char in data)
+    data_len = len(binary_data)
+    pixels = list(image.getdata())
+
+    for i in range(data_len):
+        pixel = list(pixels[i])
+        pixel[0] = pixel[0] & ~1 | int(binary_data[i])
+        pixels[i] = tuple(pixel)
+
+    image.putdata(pixels)
+    image.save(output_path)
+
+# Example usage
+executable_code = """
+import os
+os.system('echo Hello, World!')
+"""
+embed_data('input_image.png', executable_code, 'output_image.png')
+////////////////////////////////////////
+from PIL import Image
+
+def extract_data(image_path):
+    image = Image.open(image_path)
+    binary_data = ""
+    pixels = list(image.getdata())
+
+    for pixel in pixels:
+        binary_data += str(pixel[0] & 1)  # Extract LSB of red channel
+
+    byte_data = [binary_data[i:i+8] for i in range(0, len(binary_data), 8)]
+    decoded_data = ''.join([chr(int(byte, 2)) for byte in byte_data])
+    return decoded_data
+
+# Example usage
+hidden_code = extract_data('output_image.png')
+exec(hidden_code)

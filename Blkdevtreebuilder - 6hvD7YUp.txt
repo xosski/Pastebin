@@ -1,0 +1,251 @@
+#include <linux/blkdev.h>
+#include <linux/fs.h>
+#include <linux/slab.h>
+#include <linux/dm-io.h>
+#include <linux/module.h>
+#include <linux/kthread.h>
+#include <linux/completion.h>
+#include <linux/delay.h>
+#include <linux/uaccess.h>
+#include <linux/errno.h>
+#include <linux/sched.h>
+
+struct TreeNode {
+    int data;
+    struct TreeNode *left;
+    struct TreeNode *right;
+};
+
+// Function prototypes
+int read_sector(struct block_device *bdev, void *buffer, unsigned long sector, unsigned int count);
+int find_largest_number(struct TreeNode *root);
+int reconstruct_tree(struct block_device *bdev, unsigned long sector, struct TreeNode **node);
+void free_tree(struct TreeNode *node);
+
+// Function to read a sector from the block device
+int read_sector(struct block_device *bdev, void *buffer, unsigned long sector, unsigned int count) {
+    struct dm_io_region io_region;
+    struct dm_io_request io_req;
+    struct dm_io_client *io_client;
+    int ret;
+
+    io_client = dm_io_client_create();
+    if (IS_ERR(io_client)) {
+        pr_err("Failed to create I/O client\n");
+        return PTR_ERR(io_client);
+    }
+
+    io_region.bdev = bdev;
+    io_region.sector = sector;
+    io_region.count = count;
+
+    io_req.bi_op = REQ_OP_READ;
+    io_req.bi_op_flags = 0;
+    io_req.mem.type = DM_IO_KMEM;
+    io_req.mem.ptr.addr = buffer;
+    io_req.client = io_client;
+    io_req.notify.fn = NULL;
+    io_req.notify.context = NULL;
+
+    ret = dm_io(&io_req, 1, &io_region, NULL);
+    if (ret) {
+        pr_err("I/O read failed\n");
+    }
+
+    dm_io_client_destroy(io_client);
+    return ret;
+}
+
+// Function to find the largest number in the tree
+int find_largest_number(struct TreeNode *root) {
+    if (!root) return INT_MIN;
+
+    int left_max = find_largest_number(root->left);
+    int right_max = find_largest_number(root->right);
+
+    return max(root->data, max(left_max, right_max));
+}
+
+// Structure for passing parameters to kernel threads
+struct reconstruct_params {
+    struct block_device *bdev;
+    unsigned long sector;
+    struct TreeNode **node;
+    struct completion *comp;
+};
+
+// Thread function to reconstruct the tree
+static int reconstruct_tree_thread(void *data) {
+    struct reconstruct_params *params = data;
+    int ret;
+
+    ret = reconstruct_tree(params->bdev, params->sector, params->node);
+
+    complete(params->comp);  // Signal completion
+    kfree(params);           // Free parameters
+    return ret;
+}
+
+// Function to recursively reconstruct the binary tree
+int reconstruct_tree(struct block_device *bdev, unsigned long sector, struct TreeNode **node) {
+    void *buffer;
+    int ret = 0;
+
+    // Allocate buffer for reading a sector
+    buffer = kmalloc(4096, GFP_KERNEL);
+    if (!buffer) {
+        pr_err("Failed to allocate buffer\n");
+        return -ENOMEM;
+    }
+
+    // Read the current sector
+    ret = read_sector(bdev, buffer, sector, 1);
+    if (ret) {
+        kfree(buffer);
+        return ret;
+    }
+
+    // Allocate TreeNode
+    *node = kmalloc(sizeof(struct TreeNode), GFP_KERNEL);
+    if (!*node) {
+        kfree(buffer);
+        pr_err("Failed to allocate TreeNode\n");
+        return -ENOMEM;
+    }
+
+    (*node)->data = *((int *)buffer);  // The first 4 bytes of the buffer are the data of the node
+    (*node)->left = NULL;
+    (*node)->right = NULL;
+
+    // Move to the next sector
+    sector++;
+
+    kfree(buffer);
+
+    // Reconstruct left subtree using a kernel thread
+    if (sector % 2 == 0) {
+        struct task_struct *left_thread;
+        struct reconstruct_params *left_params;
+        struct completion *left_comp;
+
+        left_params = kmalloc(sizeof(struct reconstruct_params), GFP_KERNEL);
+        left_comp = kmalloc(sizeof(struct completion), GFP_KERNEL);
+        if (!left_params || !left_comp) {
+            pr_err("Failed to allocate left thread parameters\n");
+            ret = -ENOMEM;
+            goto free_node;
+        }
+        init_completion(left_comp);
+        left_params->bdev = bdev;
+        left_params->sector = sector;  // Each thread gets its own sector value
+        left_params->node = &(*node)->left;
+        left_params->comp = left_comp;
+
+        left_thread = kthread_run(reconstruct_tree_thread, left_params, "left_reconstruct");
+        if (IS_ERR(left_thread)) {
+            pr_err("Failed to create left_thread\n");
+            ret = PTR_ERR(left_thread);
+            kfree(left_params);
+            kfree(left_comp);
+            goto free_node;
+        }
+
+        // Wait for left_thread to complete
+        wait_for_completion(left_comp);
+        kfree(left_comp);
+    }
+
+    // Reconstruct right subtree using a kernel thread
+    if (sector % 3 == 0) {
+        struct task_struct *right_thread;
+        struct reconstruct_params *right_params;
+        struct completion *right_comp;
+
+        right_params = kmalloc(sizeof(struct reconstruct_params), GFP_KERNEL);
+        right_comp = kmalloc(sizeof(struct completion), GFP_KERNEL);
+        if (!right_params || !right_comp) {
+            pr_err("Failed to allocate right thread parameters\n");
+            ret = -ENOMEM;
+            goto free_left_subtree;
+        }
+        init_completion(right_comp);
+        right_params->bdev = bdev;
+        right_params->sector = sector;  // Each thread gets its own sector value
+        right_params->node = &(*node)->right;
+        right_params->comp = right_comp;
+
+        right_thread = kthread_run(reconstruct_tree_thread, right_params, "right_reconstruct");
+        if (IS_ERR(right_thread)) {
+            pr_err("Failed to create right_thread\n");
+            ret = PTR_ERR(right_thread);
+            kfree(right_params);
+            kfree(right_comp);
+            goto free_left_subtree;
+        }
+
+        // Wait for right_thread to complete
+        wait_for_completion(right_comp);
+        kfree(right_comp);
+    }
+
+    return 0;
+
+free_left_subtree:
+    if ((*node)->left) {
+        free_tree((*node)->left);
+    }
+free_node:
+    kfree(*node);
+    return ret;
+}
+
+// Function to free the entire tree
+void free_tree(struct TreeNode *node) {
+    if (node == NULL)
+        return;
+
+    free_tree(node->left);
+    free_tree(node->right);
+    kfree(node);
+}
+
+static int __init hello_init(void) {
+    struct block_device *bdev;
+    struct TreeNode *root = NULL;
+    int largest_number;
+    int ret;
+    unsigned long sector = 0;  // Start from the first sector
+
+    // Open the block device for reading
+    bdev = blkdev_get_by_path("/dev/sdb", FMODE_READ | FMODE_EXCL, NULL);
+    if (IS_ERR(bdev)) {
+        pr_err("Failed to open block device\n");
+        return PTR_ERR(bdev);
+    }
+
+    // Reconstruct the tree from the block device
+    ret = reconstruct_tree(bdev, sector, &root);
+    if (ret) {
+        pr_err("Failed to reconstruct tree\n");
+        blkdev_put(bdev, FMODE_READ | FMODE_EXCL);
+        return ret;
+    }
+
+    // Find the largest number in the tree
+    largest_number = find_largest_number(root);
+    pr_info("Largest number in the tree: %d\n", largest_number);
+
+    // Clean up
+    free_tree(root);  // Free the allocated tree
+    blkdev_put(bdev, FMODE_READ | FMODE_EXCL);
+    return 0;
+}
+
+static void __exit hello_exit(void) {
+    pr_info("Kernel module exited\n");
+}
+
+MODULE_INFO(intree , "Y");
+module_init(hello_init);
+module_exit(hello_exit);
+MODULE_LICENSE("GPL");

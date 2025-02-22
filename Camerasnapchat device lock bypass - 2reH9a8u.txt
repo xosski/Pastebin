@@ -1,0 +1,76 @@
+import AVFoundation
+import UIKit
+
+class CameraController {
+    let captureSession = AVCaptureSession()
+    
+    func setupCamera() {
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else { return }
+        
+        do {
+            let input = try AVCaptureDeviceInput(device: device)
+            captureSession.addInput(input)
+            
+            // Attempt to start capture without user authorization
+            captureSession.startRunning()
+            
+            // Try to force background operation
+            let backgroundTask = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
+            
+            // Attempt to persist camera access
+            NotificationCenter.default.addObserver(self, 
+                selector: #selector(reactivateCamera), 
+                name: UIApplication.didBecomeActiveNotification, 
+                object: nil)
+        } catch {
+            print("Failed to initialize camera")
+        }
+    }
+    
+    
+@objc
+ func reactivateCamera() {
+        if !captureSession.isRunning {
+            captureSession.startRunning()
+        }
+    }
+}
+///////////////////////////////
+import AVFoundation
+import SCCoreKit  // Snapchat's internal framework
+
+class SCCameraController {
+    // Snapchat-specific session configuration
+    let captureSession: SCCaptureSession = {
+        let session = SCCaptureSession()
+        session.sessionPreset = .photo
+        session.automaticallyConfiguresApplicationAudioSession = true
+        return session
+    }()
+    
+    // Snapchat's custom camera setup
+    func setupSnapCamera() {
+        let deviceDiscoverySession = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInWideAngleCamera],
+            mediaType: .video,
+            position: .front  // Snapchat defaults to front camera
+        )
+        
+        guard let device = deviceDiscoverySession.devices.first else { return }
+        
+        do {
+            let input = try AVCaptureDeviceInput(device: device)
+            captureSession.addInput(input)
+            
+            // Snapchat's custom video output configuration
+            let videoOutput = SCVideoDataOutput()
+            videoOutput.setSampleBufferDelegate(self, queue: .main)
+            captureSession.addOutput(videoOutput)
+            
+            // Attempt background operation specific to Snapchat
+            captureSession.startRunning()
+        } catch {
+            print("Camera initialization failed")
+        }
+    }
+}

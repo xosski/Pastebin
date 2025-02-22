@@ -1,0 +1,188 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/blkdev.h>
+#include <linux/fs.h>
+#include <linux/slab.h>
+#include <linux/dm-io.h>
+#include <linux/uaccess.h>
+#include <linux/errno.h>
+#include <linux/types.h>
+#include <linux/limits.h>
+
+struct TreeNode {
+    int data;
+    struct TreeNode *left;
+    struct TreeNode *right;
+};
+
+// Function to free the entire tree
+void free_tree(struct TreeNode *node) {
+    if (node == NULL)
+        return;
+
+    free_tree(node->left);
+    free_tree(node->right);
+    kfree(node);
+}
+
+// Function to read a sector from the block device
+int read_sector(struct block_device *bdev, void *buffer, unsigned long sector, unsigned int count) {
+    struct dm_io_region io_region;
+    struct dm_io_request io_req;
+    struct dm_io_client *io_client;
+    int ret;
+
+    io_client = dm_io_client_create();
+    if (IS_ERR(io_client)) {
+        pr_err("Failed to create I/O client\n");
+        return PTR_ERR(io_client);
+    }
+
+    io_region.bdev = bdev;
+    io_region.sector = sector;
+    io_region.count = count;
+
+    io_req.bi_op = REQ_OP_READ;
+    io_req.bi_op_flags = 0;
+    io_req.mem.type = DM_IO_KMEM;
+    io_req.mem.ptr.addr = buffer;
+    io_req.client = io_client;
+    io_req.notify.fn = NULL;
+    io_req.notify.context = NULL;
+
+    ret = dm_io(&io_req, 1, &io_region, NULL);
+    if (ret) {
+        pr_err("I/O read failed\n");
+    }
+
+    dm_io_client_destroy(io_client);
+    return ret;
+}
+
+// Function to find the largest number in the tree
+int find_largest_number(struct TreeNode *root) {
+    int left_max, right_max, max_value;
+
+    if (root == NULL)
+        return INT_MIN;
+
+    left_max = find_largest_number(root->left);
+    right_max = find_largest_number(root->right);
+
+    max_value = root->data;
+    if (left_max > max_value)
+        max_value = left_max;
+    if (right_max > max_value)
+        max_value = right_max;
+
+    return max_value;
+}
+
+// Function to recursively reconstruct the binary tree
+int reconstruct_tree(struct block_device *bdev, unsigned long *sector, struct TreeNode **node) {
+    void *buffer;
+    int ret = 0;
+    int data;
+    unsigned long current_sector;
+
+    // Allocate buffer for reading a sector
+    buffer = kmalloc(512, GFP_KERNEL); // Assuming sector size is 512 bytes
+    if (!buffer) {
+        pr_err("Failed to allocate buffer\n");
+        return -ENOMEM;
+    }
+
+    current_sector = *sector;
+
+    // Read the current sector
+    ret = read_sector(bdev, buffer, current_sector, 1);
+    if (ret) {
+        kfree(buffer);
+        return ret;
+    }
+
+    // Allocate TreeNode
+    *node = kmalloc(sizeof(struct TreeNode), GFP_KERNEL);
+    if (!*node) {
+        kfree(buffer);
+        pr_err("Failed to allocate TreeNode\n");
+        return -ENOMEM;
+    }
+
+    data = *((int *)buffer);  // The first 4 bytes of the buffer are the data of the node
+    (*node)->data = data;
+    (*node)->left = NULL;
+    (*node)->right = NULL;
+
+    // Move to the next sector
+    *sector = current_sector + 1;
+
+    kfree(buffer);
+
+    // Recursively reconstruct left subtree
+    if (*sector % 2 == 0) {
+        ret = reconstruct_tree(bdev, sector, &(*node)->left);
+        if (ret) {
+            free_tree((*node)->left);
+            kfree(*node);
+            *node = NULL;
+            return ret;
+        }
+    }
+
+    // Recursively reconstruct right subtree
+    if (*sector % 3 == 0) {
+        ret = reconstruct_tree(bdev, sector, &(*node)->right);
+        if (ret) {
+            free_tree((*node)->left);
+            free_tree((*node)->right);
+            kfree(*node);
+            *node = NULL;
+            return ret;
+        }
+    }
+
+    return 0;
+}
+
+static int __init module_init_function(void) {
+    struct block_device *bdev;
+    struct TreeNode *root = NULL;
+    int largest_number;
+    int ret;
+    unsigned long sector = 0;  // Start from the first sector
+
+    // Open the block device for reading
+    bdev = blkdev_get_by_path("/dev/sdb", FMODE_READ | FMODE_EXCL, NULL);
+    if (IS_ERR(bdev)) {
+        pr_err("Failed to open block device\n");
+        return PTR_ERR(bdev);
+    }
+
+    // Reconstruct the tree from the block device
+    ret = reconstruct_tree(bdev, &sector, &root);
+    if (ret) {
+        pr_err("Failed to reconstruct tree\n");
+        blkdev_put(bdev, FMODE_READ | FMODE_EXCL);
+        return ret;
+    }
+
+    // Find the largest number in the tree
+    largest_number = find_largest_number(root);
+    pr_info("Largest number in the tree: %d\n", largest_number);
+
+    // Clean up
+    free_tree(root);  // Free the allocated tree
+    blkdev_put(bdev, FMODE_READ | FMODE_EXCL);
+    return 0;
+}
+
+static void __exit module_exit_function(void) {
+    pr_info("Kernel module exited\n");
+}
+
+module_init(module_init_function);
+module_exit(module_exit_function);
+
+MODULE_LICENSE("GPL");

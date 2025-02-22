@@ -1,0 +1,103 @@
+#!/bin/bash
+
+# Set up logging
+LOGFILE="/var/log/setup-chrome-rdp.log"
+exec > >(tee -i "$LOGFILE") 2>&1
+exec 2>&1
+
+# Require script to be run as root
+function super_user_check() {
+    if [ "${EUID}" -ne 0 ]; then
+        echo "You need to run this script as a superuser."
+        exit 1
+    fi
+}
+
+# Check for root
+super_user_check
+
+# Detect Operating System
+function dist_check() {
+    if [ -f /etc/os-release ]; then
+        # shellcheck disable=SC1091
+        source /etc/os-release
+        DISTRO=${ID}
+    else
+        echo "Error: Unable to detect operating system."
+        exit 1
+    fi
+}
+
+# Check Operating System
+dist_check
+
+# Install system requirements
+function install_system_requirements() {
+    if [[ "${DISTRO}" == "ubuntu" || "${DISTRO}" == "debian" ]]; then
+        echo "Updating package lists..."
+        apt-get update || { echo "Error: Failed to update package lists."; exit 1; }
+        echo "Installing necessary packages..."
+        apt-get install -y curl haveged || { echo "Error: Failed to install required packages."; exit 1; }
+    else
+        echo "Error: ${DISTRO} is not supported."
+        exit 1
+    fi
+}
+
+install_system_requirements
+
+# Install Chrome Remote Desktop and Google Chrome
+function install_chrome_headless() {
+    local chrome_remote_desktop_url="https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb"
+    local chrome_browser_url="https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+    local chrome_remote_desktop_local_path="/tmp/chrome-remote-desktop_current_amd64.deb"
+    local chrome_browser_local_path="/tmp/google-chrome-stable_current_amd64.deb"
+
+    if dpkg -l | grep -q chrome-remote-desktop; then
+        echo "Chrome Remote Desktop is already installed. Skipping installation."
+    else
+        echo "Installing Chrome Remote Desktop..."
+        curl -o "${chrome_remote_desktop_local_path}" "${chrome_remote_desktop_url}" || { echo "Error: Failed to download Chrome Remote Desktop."; exit 1; }
+        dpkg --install "${chrome_remote_desktop_local_path}" || { echo "Error: Failed to install Chrome Remote Desktop."; exit 1; }
+        rm -f "${chrome_remote_desktop_local_path}"
+    fi
+
+    if dpkg -l | grep -q google-chrome-stable; then
+        echo "Google Chrome is already installed. Skipping installation."
+    else
+        echo "Installing Google Chrome..."
+        curl -o "${chrome_browser_local_path}" "${chrome_browser_url}" || { echo "Error: Failed to download Google Chrome."; exit 1; }
+        dpkg --install "${chrome_browser_local_path}" || { echo "Error: Failed to install Google Chrome."; exit 1; }
+        rm -f "${chrome_browser_local_path}"
+    fi
+
+    echo "Installing XFCE desktop environment..."
+    apt-get install -y xfce4 desktop-base task-xfce-desktop xscreensaver || { echo "Error: Failed to install XFCE."; exit 1; }
+
+    echo "Configuring Chrome Remote Desktop session..."
+    echo "exec /etc/X11/Xsession /usr/bin/xfce4-session" >> /etc/chrome-remote-desktop-session || { echo "Error: Failed to configure Chrome Remote Desktop session."; exit 1; }
+
+    echo "Resolving dependencies..."
+    apt-get install -f -y || { echo "Error: Failed to resolve dependencies."; exit 1; }
+}
+
+install_chrome_headless
+
+# Handle LightDM service
+function handle_services() {
+    echo "Stopping LightDM service to avoid conflicts..."
+    if command -v systemctl &>/dev/null; then
+        systemctl stop lightdm || echo "Warning: Failed to stop LightDM with systemctl."
+    elif command -v service &>/dev/null; then
+        service lightdm stop || echo "Warning: Failed to stop LightDM with service."
+    else
+        echo "Error: No service management tool found to stop LightDM."
+        exit 1
+    fi
+}
+
+handle_services
+
+# Cleanup and exit
+echo "Setup completed successfully. Logs can be found at $LOGFILE."
+exit 0

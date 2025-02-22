@@ -1,0 +1,182 @@
+#include <linux/module.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include <linux/uaccess.h>
+#include <linux/slab.h>
+#include <linux/mutex.h>
+
+#define NUM_MINORS 5
+#define BUFFER_SIZE 100
+
+static dev_t dev_num; // Holds major and minor numbers
+static struct cdev hello_cdev;
+static struct class *hello_class; // Device class
+static char *buffers[NUM_MINORS]; // Buffers for each minor device
+static struct mutex buffer_locks[NUM_MINORS]; // Mutexes for buffer access
+
+// File operations prototypes
+static int hello_open(struct inode *inode, struct file *file);
+static int hello_release(struct inode *inode, struct file *file);
+static ssize_t hello_read(struct file *file, char __user *user_buf, size_t count, loff_t *offset);
+static ssize_t hello_write(struct file *file, const char __user *user_buf, size_t count, loff_t *offset);
+
+// File operations structure
+static const struct file_operations hello_fops = {
+    .owner = THIS_MODULE,
+    .open = hello_open,
+    .release = hello_release,
+    .read = hello_read,
+    .write = hello_write,
+};
+
+// Open operation
+static int hello_open(struct inode *inode, struct file *file) {
+    int minor = iminor(inode); // Get minor number
+    if (minor >= NUM_MINORS) {
+        pr_err("hello_char_dev: Invalid minor number %d\n", minor);
+        return -ENODEV;
+    }
+    file->private_data = (void *)(uintptr_t)minor; // Store minor number in private_data
+    return 0;
+}
+
+// Release operation
+static int hello_release(struct inode *inode, struct file *file) {
+    return 0;
+}
+
+// Read operation
+static ssize_t hello_read(struct file *file, char __user *user_buf, size_t count, loff_t *offset) {
+    int minor = (uintptr_t)file->private_data;
+    char *buffer = buffers[minor];
+    size_t len = strlen(buffer);
+
+    if (*offset >= len)
+        return 0; // EOF
+
+    if (count + *offset > len)
+        count = len - *offset;
+
+    if (mutex_lock_interruptible(&buffer_locks[minor]))
+        return -ERESTARTSYS;
+
+    if (copy_to_user(user_buf, buffer + *offset, count)) {
+        mutex_unlock(&buffer_locks[minor]);
+        return -EFAULT;
+    }
+
+    *offset += count;
+    mutex_unlock(&buffer_locks[minor]);
+    return count;
+}
+
+// Write operation
+static ssize_t hello_write(struct file *file, const char __user *user_buf, size_t count, loff_t *offset) {
+    int minor = (uintptr_t)file->private_data;
+    char *buffer = buffers[minor];
+
+    if (count >= BUFFER_SIZE)
+        count = BUFFER_SIZE - 1;
+
+    if (mutex_lock_interruptible(&buffer_locks[minor]))
+        return -ERESTARTSYS;
+
+    if (copy_from_user(buffer, user_buf, count)) {
+        mutex_unlock(&buffer_locks[minor]);
+        return -EFAULT;
+    }
+
+    buffer[count] = '\0'; // Null-terminate the string
+    mutex_unlock(&buffer_locks[minor]);
+    return count;
+}
+
+// Module initialization
+static int __init hello_init(void) {
+    int ret, i;
+
+    // Allocate device numbers
+    ret = alloc_chrdev_region(&dev_num, 0, NUM_MINORS, "hello_char_dev");
+    if (ret < 0) {
+        pr_err("hello_char_dev: Failed to allocate device numbers\n");
+        return ret;
+    }
+
+    // Create device class
+    hello_class = class_create(THIS_MODULE, "hello_char_class");
+    if (IS_ERR(hello_class)) {
+        pr_err("hello_char_dev: Failed to create device class\n");
+        ret = PTR_ERR(hello_class);
+        goto unregister_region;
+    }
+
+    // Initialize buffers and mutexes
+    for (i = 0; i < NUM_MINORS; i++) {
+        buffers[i] = kmalloc(BUFFER_SIZE, GFP_KERNEL);
+        if (!buffers[i]) {
+            pr_err("hello_char_dev: Failed to allocate memory for buffer %d\n", i);
+            ret = -ENOMEM;
+            goto cleanup_buffers;
+        }
+        strcpy(buffers[i], "empty"); // Initialize buffers with "empty"
+        mutex_init(&buffer_locks[i]);
+
+        // Create device files
+        if (!device_create(hello_class, NULL, MKDEV(MAJOR(dev_num), i), NULL, "hello_dev%d", i)) {
+            pr_err("hello_char_dev: Failed to create device file for minor %d\n", i);
+            ret = -ENOMEM;
+            goto cleanup_buffers;
+        }
+    }
+
+    // Initialize cdev
+    cdev_init(&hello_cdev, &hello_fops);
+    hello_cdev.owner = THIS_MODULE;
+
+    ret = cdev_add(&hello_cdev, dev_num, NUM_MINORS);
+    if (ret < 0) {
+        pr_err("hello_char_dev: Failed to add cdev\n");
+        goto cleanup_devices;
+    }
+
+    pr_info("hello_char_dev: Registered with major number %d\n", MAJOR(dev_num));
+    return 0;
+
+cleanup_devices:
+    for (i = 0; i < NUM_MINORS; i++)
+        device_destroy(hello_class, MKDEV(MAJOR(dev_num), i));
+
+cleanup_buffers:
+    for (i = 0; i < NUM_MINORS; i++)
+        kfree(buffers[i]);
+
+    class_destroy(hello_class);
+
+unregister_region:
+    unregister_chrdev_region(dev_num, NUM_MINORS);
+    return ret;
+}
+
+// Module cleanup
+static void __exit hello_exit(void) {
+    int i;
+
+    cdev_del(&hello_cdev);
+
+    for (i = 0; i < NUM_MINORS; i++) {
+        device_destroy(hello_class, MKDEV(MAJOR(dev_num), i));
+        kfree(buffers[i]);
+    }
+
+    class_destroy(hello_class);
+    unregister_chrdev_region(dev_num, NUM_MINORS);
+    pr_info("hello_char_dev: Unregistered\n");
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Improved by ChatGPT");
+MODULE_DESCRIPTION("Improved Character Device with Dynamic Major Number and Device Files");

@@ -1,0 +1,63 @@
+import requests
+import json
+import zipfile
+import shutil
+import os
+from pathlib import Path
+import pandas as pd
+import re
+
+# Paths
+user_folder = Path.home()
+data_folder = user_folder / "The Data City" / "The Data City - Documents" / "Projects" / "HVMC" / "Data" / "Directory" / "CIC"
+
+# SIC Code Reading
+with open(data_folder / "SICCodesOfInterest.txt", "r") as f:
+    sic_codes = [line.strip() for line in f]
+
+# Handle Existing Files/Folders
+sic_zip = data_folder / "SICData.zip"
+if sic_zip.exists():
+    print("Deleting existing SICData.zip...")
+    sic_zip.unlink()
+    
+sic_data_folder = data_folder / "SICData"
+if sic_data_folder.exists():
+    print("Deleting existing SICData folder...")
+    shutil.rmtree(sic_data_folder)
+
+# Make Request to Server
+json_to_send = json.dumps({"SelectedSICs": sic_codes, "ReturnCount": 10000000, "DownloadFormat": "csv", "PreFilter": {"OnlyCompaniesWithWebsites": True, "OnlyManufacturingCompanies": True}})
+print("Requesting data from server...")
+req = requests.post(server_download_url, data=json_to_send)
+r_json = req.json()
+download_url = r_json["Download_URL"]
+
+# Download and Extract ZIP
+r = requests.get(f"https://server{current_month}{current_year[2:]}.thedatacity.com" + download_url)
+with open(sic_zip, "wb") as f:
+    f.write(r.content)
+
+# Extract ZIP
+with zipfile.ZipFile(sic_zip, 'r') as zip_ref:
+    zip_ref.extractall(sic_data_folder)
+
+# Process Data
+df = pd.read_csv(sic_data_folder / "companieslist_financialsColumnLayout_.csv", usecols=["Companynumber", "Description", "SICs"], dtype={"Companynumber": str, "Description": str, "SICs": str})
+
+# Keywords Processing (as you already did)
+...
+
+# Remove Companies based on SIC and Keywords
+df = df[~((df["SICs"].str.contains("70100")) & (df["Description"].str.contains("|".join(keywords), na=False)))]
+
+# Collect Company Numbers
+all_company_numbers = df.Companynumber.tolist()
+
+# RTIC Data (continue as before)
+...
+
+# Write Final Output
+with open(data_folder / "HVMC_AllCompanyNumbers.txt", "w") as f:
+    for number in all_company_numbers:
+        f.write(number + "\n")

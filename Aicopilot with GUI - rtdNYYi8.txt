@@ -1,0 +1,308 @@
+from flask import Flask, request, jsonify, send_from_directory, render_template
+import requests
+import json
+import subprocess
+import os
+import threading
+import re
+from tkinter import *
+from tkinter import ttk
+import tkinter.scrolledtext as scrolledtext
+
+app = Flask(__name__)
+
+# Dossier pour stocker les fichiers générés
+GENERATED_FILES_DIR = "generated_files"
+os.makedirs(GENERATED_FILES_DIR, exist_ok=True)
+
+# URLs et clés des APIs
+OLLAMA_API_URL = "http://localhost:11434/api/chat"
+MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
+MISTRAL_API_KEY = "JCASwm1qYdbfSCd7ilpEgUU0oRv7LcbG"
+
+# Modèles disponibles
+OLLAMA_MODELS = []
+MISTRAL_MODELS = [
+    "pixtral-large-latest",
+    "pixtral-medium-latest",
+    "pixtral-small-latest",
+    "mistral-large-latest",
+    "ministral-3b-latest",
+    "ministral-8b-latest",
+    "mistral-small-latest",
+    "codestral-latest",
+    "mistral-medium",
+    "mistral-embed",
+    "mistral-moderation-latest",
+    "pixtral-12b-2409",
+    "open-mistral-nemo",
+    "open-codestral-mamba",
+    "open-mistral-7b",
+    "open-mixtral-8x7b",
+    "open-mixtral-8x22b",
+    
+]
+
+# Stocker l'historique et la mémoire contextuelle
+conversation_history = []
+contextual_memory = []
+
+# Route pour servir la page HTML
+@app.route('/')
+def serve_index():
+    return render_template("index.html")
+
+# Route pour interagir avec les APIs Ollama et Mistral
+@app.route('/ask', methods=['POST'])
+def ask_ai():
+    global conversation_history, contextual_memory
+
+    user_message = request.json.get("message", "")
+    selected_model = request.json.get("model", "llama3.2")  # Par défaut Ollama
+
+    # Ajouter le message utilisateur à l'historique
+    conversation_history.append({"role": "user", "content": user_message})
+
+    # Vérifier si le modèle appartient à Ollama ou Mistral
+    if selected_model in OLLAMA_MODELS:
+        ai_response, memory_update = query_ollama(selected_model)
+    elif selected_model in MISTRAL_MODELS:
+        ai_response, memory_update = query_mistral(selected_model, user_message)
+    else:
+        return jsonify({"error": "Modèle non reconnu"}), 400
+
+    # Ajouter la réponse de l'IA à l'historique
+    conversation_history.append({"role": "assistant", "content": ai_response})
+
+    # Si l'IA identifie des informations à mémoriser, les stocker
+    if memory_update:
+        contextual_memory.append(memory_update)
+
+    # Gérer la création de fichiers si du code est généré
+    create_files_from_response(ai_response)
+
+    return jsonify({"response": ai_response})
+
+# Route pour lister les modèles disponibles
+@app.route('/models', methods=['GET'])
+def list_models():
+    global OLLAMA_MODELS
+    try:
+        # Récupérer les modèles locaux d'Ollama
+        result = subprocess.run(['ollama', 'list'], capture_output=True, text=True)
+        if result.returncode == 0:
+            OLLAMA_MODELS = [line.split()[0] for line in result.stdout.splitlines() if line]
+    except Exception as e:
+        OLLAMA_MODELS = []
+
+    # Fusionner les modèles Ollama et Mistral
+    models = {"ollama": OLLAMA_MODELS, "mistral": MISTRAL_MODELS}
+    return jsonify(models)
+
+# Route pour explorer les fichiers générés
+@app.route('/explore', methods=['GET'])
+def explore_files():
+    files_structure = {}
+    for root, dirs, files in os.walk(GENERATED_FILES_DIR):
+        path = root.split(os.sep)
+        current_dir = files_structure
+        for folder in path[1:]:
+            current_dir = current_dir.setdefault(folder, {})
+        for file in files:
+            current_dir[file] = os.path.join(root, file)
+    return jsonify(files_structure)
+
+# Route pour lire un fichier
+@app.route('/file', methods=['GET'])
+def read_file():
+    filepath = request.args.get("path")
+    if not filepath or not os.path.exists(filepath):
+        return jsonify({"error": "Fichier introuvable"}), 404
+    with open(filepath, "r", encoding="utf-8") as f:
+        return jsonify({"content": f.read()})
+
+# Route pour modifier un fichier
+@app.route('/file', methods=['POST'])
+def edit_file():
+    data = request.json
+    filepath = data.get("path")
+    content = data.get("content")
+    if not filepath or not os.path.exists(filepath):
+        return jsonify({"error": "Fichier introuvable"}), 404
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(content)
+    return jsonify({"message": "Fichier mis à jour avec succès"})
+
+# Fonction pour interroger l'API Ollama
+def query_ollama(model):
+    global contextual_memory
+
+    full_context = contextual_memory + conversation_history
+    payload = {
+        "model": model,
+        "messages": full_context,
+        "system_prompt": (
+            "Tu es une IA conversationnelle spécialisée dans l'aide à la programmation. "
+            "Respecte les consignes et génère des fichiers si nécessaire."
+        ),
+    }
+
+    try:
+        response = requests.post(OLLAMA_API_URL, json=payload, stream=True)
+        if response.status_code != 200:
+            return f"Erreur de l'API Ollama : {response.status_code}", None
+
+        full_response = ""
+        memory_update = None
+
+        for line in response.iter_lines():
+            if line:
+                json_part = json.loads(line.decode('utf-8'))
+                if "memory_update" in json_part:
+                    memory_update = json_part["memory_update"]
+                full_response += json_part.get("message", {}).get("content", "")
+
+        return full_response or "Pas de réponse reçue.", memory_update
+    except Exception as e:
+        return f"Erreur : {str(e)}", None
+
+# Fonction pour interroger l'API Mistral
+def query_mistral(model, user_message):
+    headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}", "Content-Type": "application/json"}
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": user_message}],
+    }
+
+    try:
+        response = requests.post(MISTRAL_API_URL, json=payload, headers=headers)
+        if response.status_code == 200:
+            json_response = response.json()
+            ai_response = json_response.get("choices", [{}])[0].get("message", {}).get("content", "")
+            return ai_response, None
+        else:
+            return f"Erreur de l'API Mistral : {response.status_code}", None
+    except Exception as e:
+        return f"Erreur : {str(e)}", None
+
+# Fonction pour créer des fichiers à partir d'une réponse
+def create_files_from_response(response):
+    code_blocks = re.findall(r"(?:\/\/\s*file:\s*([\w.\-]+))?\s*(\w+)?\n(.*?)", response, re.DOTALL)
+    for i, (filename_hint, language, code) in enumerate(code_blocks):
+        extension = {
+            "html": "html",
+            "css": "css",
+            "js": "js",
+            "python": "py",
+            "java": "java",
+            "php": "php",
+            "json": "json",
+            "xml": "xml",
+            "txt": "txt",
+        }.get(language.lower() if language else "txt", "txt")
+
+        filename = filename_hint or f"file_{i + 1}.{extension}"
+        filepath = os.path.join(GENERATED_FILES_DIR, filename)
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(code.strip())
+        print(f"Fichier créé : {filepath}")
+
+class ChatGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("✨ AI Assistant Chat ✨")
+        self.root.geometry("1000x800")
+        self.root.configure(bg='#1a237e')
+        
+        style = ttk.Style()
+        style.configure('Custom.TFrame', background='#1a237e')
+        style.configure('Custom.TButton', padding=10, font=('Helvetica', 10, 'bold'))
+        
+        # Main frame
+        main_frame = ttk.Frame(root, padding="20", style='Custom.TFrame')
+        main_frame.pack(fill=BOTH, expand=True)
+        
+        # Model selection
+        self.model_var = StringVar(value="mistral-small-latest")
+        model_frame = ttk.Frame(main_frame)
+        model_frame.pack(fill=X, pady=(0, 10))
+        
+        ttk.Label(model_frame, text="Select AI Model:", font=('Helvetica', 10, 'bold')).pack(side=LEFT)
+        model_menu = ttk.Combobox(model_frame, textvariable=self.model_var, width=30)
+        model_menu['values'] = MISTRAL_MODELS + OLLAMA_MODELS
+        model_menu.pack(side=LEFT, padx=(5, 0))
+        
+        # Chat display with custom styling
+        self.chat_display = scrolledtext.ScrolledText(
+            main_frame, 
+            wrap=WORD, 
+            height=25,
+            font=('Helvetica', 11),
+            bg='#f5f5f5',
+            padx=10,
+            pady=10
+        )
+        self.chat_display.pack(fill=BOTH, expand=True, pady=(0, 10))
+        
+        # Input area with status
+        self.status_var = StringVar(value="Ready to chat...")
+        ttk.Label(main_frame, textvariable=self.status_var).pack(fill=X)
+        
+        input_frame = ttk.Frame(main_frame)
+        input_frame.pack(fill=X, pady=(5, 0))
+        
+        self.message_input = ttk.Entry(input_frame, font=('Helvetica', 11))
+        self.message_input.pack(side=LEFT, fill=X, expand=True)
+        
+        send_button = ttk.Button(
+            input_frame, 
+            text="Send Message", 
+            command=self.send_message,
+            style='Custom.TButton'
+        )
+        send_button.pack(side=LEFT, padx=(5, 0))
+        
+        # Bind Enter key
+        self.message_input.bind("<Return>", lambda e: self.send_message())
+        
+    def send_message(self):
+        message = self.message_input.get()
+        if message:
+            self.chat_display.insert(END, f"\n🤔 You: {message}\n", 'user')
+            self.chat_display.tag_configure('user', foreground='#2196F3')
+            
+            self.message_input.delete(0, END)
+            self.status_var.set("AI is thinking...")
+            self.root.update()
+            
+            # Run AI query in separate thread
+            threading.Thread(target=self.get_ai_response, args=(message,), daemon=True).start()
+    
+    def get_ai_response(self, message):
+        selected_model = self.model_var.get()
+        
+        try:
+            if selected_model in MISTRAL_MODELS:
+                response, _ = query_mistral(selected_model, message)
+            else:
+                response, _ = query_ollama(selected_model)
+            
+            self.chat_display.insert(END, f"\n🤖 AI: {response}\n", 'ai')
+            self.chat_display.tag_configure('ai', foreground='#4CAF50')
+            
+        except Exception as e:
+            self.chat_display.insert(END, f"\n⚠️ Error: {str(e)}\n", 'error')
+            self.chat_display.tag_configure('error', foreground='#f44336')
+        
+        self.status_var.set("Ready to chat...")
+        self.chat_display.see(END)
+        self.root.update()
+
+def main():
+    root = Tk()
+    app = ChatGUI(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
+

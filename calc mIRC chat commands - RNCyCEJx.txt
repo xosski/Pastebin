@@ -1,0 +1,33 @@
+on *:input:#:{ doit $1 $chan }
+on *:text:*:#:{ doit $1 $chan $nick }
+ 
+alias -l doit {
+  var %r = $mid($1,2), %rx = $+(%r,:), %f = $qt($+(C:\textfiles1\,%r,.txt)), %target = $iif($istok(?articles ?commands,$1,32),$3,$2)
+  if (!%target) {
+    echo -as [ERROR] Invalid target.
+    return
+  }
+  if ($1 == ?stop) { .play stop }
+  elseif ($1 == ?commands) { getcommands %target }
+  elseif ($isfile(%f) && $left($1,1) == ?) {
+    .play stop
+    echo -sa %rx triggered
+    echo -sa %rx found file
+    .play -m1 %target %f 6000
+    echo -sa %rx finished
+  }
+}
+ 
+alias -l getcommands {
+  var %a = 1, %b, %c, %total
+  while ($findfile(C:\textfiles\,*.txt,%a,0)) {
+    %b = $v1
+    %c = %c $+(?,$remove($nopath(%b),.txt))
+    inc %a
+  }
+  %c = $sorttok(%c,32)
+  %total = $findfile(C:\textfiles\,*.txt,0)
+  var %a = 1, %b = 10, %t = 2
+  .notice $1 Commands %total $+ :
+  while ($gettok(%c,%a - $calc(%a + $calc(%b - 1)),32) != $null) { .timer -o 1 %t .notice $1 $+($chr(3),07,$v1,$chr(3)) | inc %t 2 | inc %a %b }
+}

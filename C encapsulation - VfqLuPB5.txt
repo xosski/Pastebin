@@ -1,0 +1,96 @@
+#define EMPTY(...)
+#define DEFER(...) __VA_ARGS__ EMPTY()
+#define EXPAND(...) __VA_ARGS__
+#define PARENS ()
+#define CONCAT_IMPL(L, R) L ## R
+#define CONCAT(L, R) CONCAT_IMPL(L, R)
+#define EVAL(...) __VA_ARGS__
+// [Previous macro definitions remain the same]
+
+#include <iostream>
+#include <tuple>
+#include <concepts>
+#include <stdexcept>
+#include <format>
+
+// Strong types for better type safety
+class Money {
+    int value;
+public:
+    explicit Money(int v) : value(v) { 
+        if (v < 0) throw std::invalid_argument("Money cannot be negative");
+    }
+    auto operator<=>(const Money&) const = default;
+    int get() const { return value; }
+};
+
+// Enhanced Person class
+class Person {
+private:
+    class BankAccount { 
+        Money money{0}; 
+    } bank_account;
+    Money money{0};
+    std::string name;
+    std::string status;
+    Person() = delete;
+};
+
+// Transaction logging
+class TransactionLogger {
+public:
+    static void log(const std::string& action, const std::string& name) {
+        std::cout << std::format("Transaction log: {} - Target: {}\n", action, name);
+    }
+};
+
+DEFINE_INTRUSIVE_FUNCTIONS((Person, name, bank_account, money, status), 
+                          (Person::BankAccount, (money, bank_money)),
+    template<typename... Args>
+    requires std::convertible_to<std::tuple<Args...>, 
+             std::tuple<std::string, std::string, int, int>>
+    friend Person force_create_person(Args&&... args) {
+        auto p = force_create<Person>();
+        try {
+            std::tie(p.*name, p.*status, p.*bank_account.*bank_money, p.*money) = 
+                std::make_tuple(std::forward<Args>(args)...);
+            TransactionLogger::log("Created person", p.*name);
+            return p;
+        } catch (const std::exception& e) {
+            throw std::runtime_error(std::format("Failed to create person: {}", e.what()));
+        }
+    }
+
+    friend void force_print(const Person &p) {
+        std::cout << std::format("{}\n  status: {}\n  bank_money: {}\n  money: {}\n",
+            p.*name,
+            p.*status,
+            p.*bank_account.*bank_money.get(),
+            p.*money.get());
+    }
+
+    friend void force_rob(Person &p) {
+        TransactionLogger::log("Robbery", p.*name);
+        p.*status = "poor";
+        p.*bank_account.*bank_money = Money(0);
+        p.*money = Money(0);
+    }
+)
+
+Person force_create_person(auto ...args);
+void force_print(const Person &p);
+void force_rob(Person &p);
+
+int main() {
+    try {
+        auto p = force_create_person("John", "rich", 999999, 4242);
+        force_print(p);
+        force_rob(p);
+        force_print(p);
+        
+        // Test invalid creation
+        auto p2 = force_create_person("Jane", "rich", -1, 100); // Will throw
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << '\n';
+    }
+}

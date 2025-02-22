@@ -1,0 +1,127 @@
+import json
+import os
+import re
+import shutil
+import subprocess
+import zipfile
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+import requests
+import openpyxl
+
+# make a pathlib folder to the user
+user_folder = Path.home()
+
+# set path to data folder: \The Data City\The Data City - Documents\Projects\HVMC\Data\CIC
+if not os.name == 'posix':
+    data_folder = user_folder / "The Data City" / "The Data City - Documents" / "Projects" / "HVMC" / "Data" / "Directory" / "CIC"
+else:
+    data_folder = user_folder / "Library" / "CloudStorage" / "OneDrive-SharedLibraries-TheDataCity" / "The Data City - Documents" / "Projects" / "HVMC" / "Directory" / "Data" / "CIC"
+
+# Read in all SIC codes
+with open(data_folder / "SICCodesOfInterest.txt", "r") as f:
+    sic_codes = [line.strip() for line in f]
+
+# if SICData.zip already exists then delete it and delete the SICData folder
+if (data_folder / "SICData.zip").exists():
+    print("SICData.zip already exists, deleting...")
+    (data_folder / "SICData.zip").unlink()
+    print("SICData.zip deleted...")
+
+if (data_folder / "SICData").exists():
+    print("SICData folder already exists, deleting...")
+    shutil.rmtree(data_folder / "SICData")
+    print("SICData folder deleted...")
+
+# Make the request to the server to download the data
+# serialise the json
+json_to_send = json.dumps({"SelectedSICs": sic_codes, "ReturnCount": 10000000, "DownloadFormat": "csv", "PreFilter": {"OnlyCompaniesWithWebsites": True, "OnlyManufacturingCompanies": True}})
+print("Making request to server...")
+req = requests.post(server_download_url, data=json_to_send)
+print("Request made to server...")
+r_json = req.json()
+download_url = r_json["Download_URL"]
+# download the data
+print("Downloading data...")
+r = requests.get(f"https://server{current_month}{current_year[2:]}.thedatacity.com" + download_url)
+print("Data downloaded...")
+# write the data to an excel file and then read it in
+with open(data_folder / "SICData.zip", "wb") as f:
+    f.write(r.content)
+
+# extract the zip file and output to a folder called SICData
+print("Extracting data...")
+file_to_get = str(data_folder / "SICData.zip")
+# patoolib.extract_archive(str(data_folder / "SICData.zip"), outdir=str(data_folder / "SICData"))
+# result = subprocess.run(['unar', '-o', 'SICData', file_to_get], capture_output=True, text=True)
+with zipfile.ZipFile(data_folder / "SICData.zip", 'r') as zip_ref:
+    zip_ref.extractall(data_folder / "SICData")
+print("Data extracted...")
+
+df = pd.read_csv(data_folder / "SICData" / "companieslist_financialsColumnLayout_.csv",
+                 usecols=["Companynumber", "Description", "SICs"], dtype={"Companynumber": str, "Description": str,
+                                                                          "SICs": str})
+
+# read in excel file
+df2 = pd.read_excel(data_folder / "70100 list with keywords to remove.xlsx",
+                    sheet_name="Sheet1", engine="openpyxl", header=1)
+keywords = df2["Description"].tolist()
+keywords = [str(kw) for kw in keywords]
+# if the keyword ends in a * then remove the * and replace it in the list
+keywords = [kw.replace("*", "") if kw.endswith("*") else kw for kw in keywords]
+# strip the keywords of whitespace
+keywords = [kw.strip() for kw in keywords]
+# remove any words inside brackets and the contents of the brackets
+keywords = [re.sub(r'\s*\(.*?\)\s*', '', word) for word in keywords]
+# if 70100 in SICs and description contains any of the keywords then remove, ignore if the description is nan
+df = df[~((df["SICs"].str.contains("70100")) & (df["Description"].str.contains("|".join(keywords), na=False)))]
+
+all_company_numbers = df.Companynumber.tolist()
+
+# Read in all RTIC codes
+with open(data_folder / "RTICCodesOfInterest.txt", "r") as f:
+    rtic_codes = [line.strip() for line in f]
+
+print("Getting RTIC data...")
+r = requests.get("https://products.thedatacity.com/v2/rtics/add_companies_to_rtics.php")
+r_json = r.json()
+print("RTIC data retrieved...")
+
+filtered_result = [d for d in r_json if d['code'] in rtic_codes]
+
+all_rtic_company_numbers = []
+for rtic in filtered_result:
+    for vertical in rtic["verticals"]:
+        all_rtic_company_numbers += vertical["companies"]
+
+all_rtic_company_numbers = list(set(all_rtic_company_numbers))
+
+all_company_numbers = all_company_numbers + all_rtic_company_numbers
+
+all_company_numbers = list(set(all_company_numbers))
+
+# Read in CompaniesToRemove.txt and zfill
+with open(data_folder / "CompaniesToRemove.txt", "r") as f:
+    companies_to_remove = [line.strip().zfill(8) for line in f]
+
+companies_to_remove_set = set(companies_to_remove)
+
+# Filter out unwanted company numbers in one go
+all_company_numbers = [number for number in all_company_numbers if number not in companies_to_remove_set]
+
+# add company numbers
+with open(data_folder / "CompaniestoAdd.txt", "r") as f:
+    companies_to_add = [line.strip() for line in f]
+
+all_company_numbers += companies_to_add
+
+with open(data_folder / "HVMC_AllCompanyNumbers.txt",
+          "w") as f:
+    for number in all_company_numbers:
+        f.write(number + "\n")
+
+with open("HVMC_AllCompanyNumbers.txt", "w") as f:
+    for number in all_company_numbers:
+        f.write(number + "\n")

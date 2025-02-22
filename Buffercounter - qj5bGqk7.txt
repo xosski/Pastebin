@@ -1,0 +1,138 @@
+// SPDX-License-Identifier: GPL
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/moduleparam.h>
+#include <linux/i2c.h>
+#include <linux/utsname.h>
+#include <linux/cdev.h>
+#include <linux/fs.h>
+#include <linux/slab.h>
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Marko Puskovic");
+
+static int local_buf_size = 10;
+module_param(local_buf_size, int, 0644);
+
+static char *local_buf;
+static int hello_count = 1;
+
+static dev_t hello_dev;
+static struct cdev hello_cdev;
+
+static ssize_t hello_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos);
+static ssize_t hello_read(struct file *file, char __user *buf, size_t count, loff_t *ppos);
+
+static const struct file_operations hello_fops = {
+    .owner = THIS_MODULE,
+    .read = hello_read,
+    .write = hello_write,
+};
+
+static size_t my_min(size_t a, size_t b)
+{
+    return (a > b) ? b : a;
+}
+
+static int __init hello_version_init(void)
+{
+    int err;
+
+    cdev_init(&hello_cdev, &hello_fops);
+
+    pr_alert("You are currently using Linux %s.\n",
+             init_uts_ns.name.release);
+
+    local_buf = kzalloc(local_buf_size, GFP_KERNEL);
+    pr_alert("Initialized buffer of size %d at address 0x%p.\n",
+             local_buf_size, local_buf);
+    if (!local_buf) {
+        err = -ENOMEM;
+        goto err_exit;
+    }
+
+    if (alloc_chrdev_region(&hello_dev, 0, hello_count, "zad1")) {
+        err = -ENODEV;
+        goto err_free_buff;
+    }
+
+    pr_info("Major: %d, Minor: %d\n", MAJOR(hello_dev), MINOR(hello_dev));
+    cdev_init(&hello_cdev, &hello_fops);
+
+    if (cdev_add(&hello_cdev, hello_dev, hello_count)) {
+        err = -ENODEV;
+        goto err_dev_unregister;
+    }
+
+    return 0;
+
+err_dev_unregister:
+    unregister_chrdev_region(hello_dev, hello_count);
+
+err_free_buff:
+    kfree(local_buf);
+
+err_exit:
+    return err;
+}
+
+static void __exit hello_version_exit(void)
+{
+    time64_t unload_time = ktime_get_real_seconds();
+
+    pr_alert("Uninitializing module zad1 at time: %lld seconds\n", unload_time);
+    cdev_del(&hello_cdev);
+    unregister_chrdev_region(hello_dev, hello_count);
+    kfree(local_buf);
+}
+
+static ssize_t hello_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+    int len = strlen(local_buf + *ppos);
+    int to_transfer = my_min(len, count);
+
+    if (to_transfer == 0)
+        return 0;
+
+    if (copy_to_user(buf, local_buf + *ppos, to_transfer))
+        return -EFAULT;
+
+    *ppos += to_transfer;
+
+    int i, lc_count = 0;
+    for (i = 0; i < local_buf_size; ++i)
+        if (local_buf[i] >= 'a' && local_buf[i] <= 'z')
+            ++lc_count;
+
+    if (lc_count < 4)
+        pr_alert("Number of lowercase letters is less than 4\n");
+    else
+        pr_alert("Number of lowercase letters is 4 or greater than 4\n");
+
+    return to_transfer;
+}
+
+static ssize_t hello_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
+{
+    int to_transfer = my_min(local_buf_size - *ppos, count);
+
+    if (to_transfer == 0)
+        return 0;
+
+    if (copy_from_user(local_buf + *ppos, buf, to_transfer))
+        return -EFAULT;
+
+    *ppos += to_transfer;
+
+    int cifre = 0, i;
+    for (i = 0; i < to_transfer; ++i)
+        if (local_buf[i] >= '0' && local_buf[i] <= '9')
+            ++cifre;
+
+    pr_alert("Number of digits: %d\n", cifre);
+
+    return to_transfer;
+}
+
+module_init(hello_version_init);
+module_exit(hello_version_exit);

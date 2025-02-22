@@ -1,0 +1,142 @@
+// SPDX-License-Identifier: GPL
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/moduleparam.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/slab.h>
+#include <linux/uaccess.h>  // for copy_from_user, copy_to_user
+
+MODULE_LICENSE("GPL");
+
+static void *local_buf;
+static int local_buf_size = 10;  // Default buffer size
+static int hello_count = 1;
+static dev_t hello_dev;
+static struct cdev hello_cdev;
+static ssize_t hello_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos);
+static ssize_t hello_read(struct file *file, char __user *buf, size_t count, loff_t *ppos);
+static char *whom = "world";
+module_param(whom, charp, S_IRUGO | S_IWUSR);
+module_param(local_buf_size, int, S_IRUGO | S_IWUSR);  // Buffer size as a module parameter
+
+static struct file_operations hello_fops = {
+    .owner = THIS_MODULE,
+    .read = hello_read,
+    .write = hello_write
+};
+
+static int lowercase_count = 0;  // Track lowercase letters in the buffer
+
+// Function to count lowercase letters in the buffer
+static void count_lowercase(void) {
+    int i;
+    lowercase_count = 0;
+    for (i = 0; i < local_buf_size; i++) {
+        if (((char *)local_buf)[i] >= 'a' && ((char *)local_buf)[i] <= 'z') {
+            lowercase_count++;
+        }
+    }
+}
+
+static ssize_t hello_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos) {
+    int to_transfer = min(local_buf_size - (int)(*ppos), count);
+    int i;
+
+    if (to_transfer == 0) {
+        pr_err("Write: No space left in buffer\n");
+        return -ENOMEM;
+    }
+
+    if (copy_from_user(local_buf + (int)(*ppos), buf, to_transfer)) {
+        return -EFAULT;
+    } else {
+        // Count lowercase letters in the newly written data
+        for (i = 0; i < to_transfer; i++) {
+            if (((char *)local_buf)[i] >= 'a' && ((char *)local_buf)[i] <= 'z') {
+                lowercase_count++;
+            }
+        }
+
+        pr_info("Lowercase letter count: %d\n", lowercase_count);
+        *ppos += to_transfer;  // Update position
+        return to_transfer;
+    }
+}
+
+static ssize_t hello_read(struct file *file, char __user *buf, size_t count, loff_t *ppos) {
+    int len = strlen(local_buf + (int)(*ppos));
+    int to_transfer = min(len, count);
+    char *message;
+
+    if (to_transfer == 0) {
+        pr_info("Read: No data to transfer\n");
+        return 0;
+    }
+
+    // Provide feedback on the lowercase count
+    if (lowercase_count < 4) {
+        message = "Number of lowercase letters is less than 4\n";
+        pr_info("Number of lowercase letters is less than 4\n");
+    } else {
+        message = "Number of lowercase letters is 4 or greater than 4\n";
+        pr_info("Number of lowercase letters is 4 or greater than 4\n");
+    }
+
+    // Copy the message to the user
+    if (copy_to_user(buf, message, to_transfer)) {
+        return -EFAULT;
+    }
+
+    *ppos += to_transfer;
+    return to_transfer;
+}
+
+static int __init hello_init(void) {
+    int err;
+
+    pr_info("Hello, %s\n", whom);
+
+    local_buf = kzalloc(local_buf_size, GFP_KERNEL);  // Dynamically allocate buffer
+    if (!local_buf) {
+        pr_err("Buffer allocation failed\n");
+        err = -ENOMEM;
+        goto err_exit;
+    }
+
+    if (alloc_chrdev_region(&hello_dev, 0, hello_count, "hello")) {
+        pr_err("Failed to allocate chrdev region\n");
+        err = -ENODEV;
+        goto err_free_buff;
+    }
+
+    pr_info("Major: %d, Minor: %d\n", MAJOR(hello_dev), MINOR(hello_dev));
+
+    cdev_init(&hello_cdev, &hello_fops);
+    if (cdev_add(&hello_cdev, hello_dev, hello_count)) {
+        pr_err("Failed to add cdev\n");
+        err = -ENODEV;
+        goto err_dev_unregister;
+    }
+
+    return 0;
+
+err_dev_unregister:
+    unregister_chrdev_region(hello_dev, hello_count);
+
+err_free_buff:
+    kfree(local_buf);
+
+err_exit:
+    return err;
+}
+
+static void __exit hello_exit(void) {
+    pr_info("Goodbye, cruel %s\n", whom);
+    cdev_del(&hello_cdev);
+    unregister_chrdev_region(hello_dev, hello_count);
+    kfree(local_buf);
+}
+
+module_init(hello_init);
+module_exit(hello_exit);

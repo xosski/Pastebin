@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# Function for error handling
+trap 'echo "An error occurred. Exiting..." >&2; exit 1' ERR
+
+# Ensure the script is being run as root (or with sudo privileges)
+if [ "$(whoami)" != "root" ]; then
+    echo "Error: This script must be run as root or with sudo." >&2
+    exit 1
+fi
+
+# Update package lists and install essential packages
+echo "Updating package lists and installing packages..."
+sudo apt update -y
+sudo apt install -y git vim tmux
+
+# Set up Vim with sensible configuration
+echo "Setting up vim..."
+mkdir -p ~/.vim/pack/tpope/start
+cd ~/.vim/pack/tpope/start
+git clone https://tpope.io/vim/sensible.git
+echo "set number" >> ~/.vimrc
+echo "set clipboard=unnamedplus" >> ~/.vimrc
+
+# Set up tmux with TPM (Tmux Plugin Manager)
+echo "Setting up tmux..."
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+cat <<EOL >> ~/.tmux.conf
+# List of plugins
+set -g @plugin 'tmux-plugins/tpm'
+set -g @plugin 'tmux-plugins/tmux-sensible'
+
+# Other examples:
+# set -g @plugin 'github_username/plugin_name'
+# set -g @plugin 'github_username/plugin_name#branch'
+# set -g @plugin 'git@github.com:user/plugin'
+# set -g @plugin 'git@bitbucket.com:user/plugin'
+
+# Initialize TMUX plugin manager (keep this line at the very bottom of tmux.conf)
+run '~/.tmux/plugins/tpm/tpm'
+EOL
+
+# Set up nano with custom configuration
+echo "Setting up nano..."
+cat <<EOL >> ~/.nanorc
+set softwrap # enables softwrap
+set tabsize 4
+set tabstopspaces
+set constantshow
+set linenumbers
+set casesensitive
+set positionlog # saves cursor positions between saves, might change
+set zap
+set autoindent
+set indicator
+set minibar
+EOL
+
+# Make bash less annoying with custom settings
+echo "Customizing bash..."
+cat <<EOL >> ~/.bashrc
+# Perform file completion in a case insensitive fashion
+bind 'set completion-ignore-case on'
+
+# Treat hyphens and underscores as equivalent
+bind 'set completion-map-case on'
+
+# Display matches for ambiguous patterns at first tab press
+bind 'set show-all-if-ambiguous on'
+
+# Immediately add a trailing slash when autocompleting symlinks to directories
+bind 'set mark-symlinked-directories on'
+
+# SANE HISTORY DEFAULTS
+shopt -s histappend  # Append to the history file, don't overwrite it
+shopt -s cmdhist    # Save multi-line commands as one command
+PROMPT_COMMAND='history -a'  # Record each line as it gets issued
+HISTSIZE=500000  # Huge history. Doesn't appear to slow things down, so why not?
+HISTFILESIZE=100000
+HISTCONTROL='erasedups:ignoreboth'  # Avoid duplicate entries
+export HISTIGNORE='&:[ ]*:exit:ls:bg:fg:history:clear'  # Don't record some commands
+
+# Enable incremental history search with up/down arrows
+bind ''\e[A': history-search-backward'
+bind ''\e[B': history-search-forward'
+bind ''\e[C': forward-char'
+bind ''\e[D': backward-char'
+
+# Correct spelling errors during tab-completion
+shopt -s dirspell 2> /dev/null
+# Correct spelling errors in arguments supplied to cd
+shopt -s cdspell 2> /dev/null
+EOL
+
+# Reload bashrc to apply changes
+source ~/.bashrc
+
+echo "Setup complete. Please restart your terminal or run 'source ~/.bashrc' to apply the changes."
