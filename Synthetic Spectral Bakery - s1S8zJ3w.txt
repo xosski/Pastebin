@@ -1,0 +1,56 @@
+Synthetic Cross-Site Cookie Injection via Domain Parsing Exploitation in Consent Frameworks
+
+Abstract
+Emerging consent and identity frameworks such as TCF/GPP rely on dynamic domain parsing and cross-site cookie propagation to enable advertising personalization and tracking compliance. However, these mechanisms—particularly when poorly scoped—can be manipulated to inject synthetic cookies, simulate user state, and bootstrap arbitrary code execution via pixel-based injection vectors. This technique poses a significant risk in the modern privacy web stack.
+
+Threat Overview
+A malicious actor leverages a consent management script that:
+Dynamically resolves root domains via regular expressions.
+
+
+Sets scoped cookies using domain= + parsedRoot + ; SameSite=None; Secure.
+
+
+Optionally stores identifiers in localStorage for cross-session correlation.
+
+
+Through a crafted payload delivered from a cooperating or compromised 3rd-party domain (e.g., via iframe or script injection), the attacker forges a cookie for a target domain (e.g., victim.com) despite the user never having visited it.
+
+Exploit Flow
+Injection: Attacker delivers a manipulated version of the consent or tracking script to a victim's browser.
+
+
+Fake Cookie Placement: Domain parser sets a SameSite=None; Secure cookie for a chosen domain by abusing flexible regex-based parsing.
+
+
+Trigger: A pixel beacon or iframe loads a resource from victim.com, which detects the synthetic cookie or localStorage entry and executes a payload (XSS, auth bypass, session riding, etc).
+
+
+Persistence: The attacker may rotate identifiers or encode payload fragments across pixel calls to persist in browser cache/state.
+
+
+
+Real-World Implications
+Consent tools trusting passive state (cookie + localStorage) can be turned into logic bombs.
+
+
+CDNs and analytics services operating across domains are especially vulnerable if their state validation is loose.
+
+
+Combined with CSP gaps, attackers can bootstrap multi-layered shadow scripts entirely off first-party trust.
+
+
+
+Mitigations
+Enforce HttpOnly, Secure, and SameSite=Strict on all auth/session cookies.
+
+
+Avoid trusting any cookie or localStorage-based signal as authentication outside verified CORS requests.
+
+
+Prevent dynamic domain logic from executing outside of explicit origin validation.
+
+
+Disallow <img>, <iframe>, and <script> resource calls from dynamic sources or consent-derived domains without verified trust chains.
+
+

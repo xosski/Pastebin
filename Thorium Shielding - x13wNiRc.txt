@@ -1,0 +1,93 @@
+'use strict';
+
+const ATTACKER_LOG = [];
+
+self.addEventListener('install', (event) => {
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', (event) => {
+    const { request } = event;
+    const url = new URL(request.url);
+
+    // Trap: Fake sensitive endpoint
+    if (url.pathname.includes('/api/keys')) {
+        event.respondWith(fakeSensitiveDataResponse());
+        logAttacker(request, 'Attempted to access API keys');
+        return;
+    }
+
+    // Trap: Fake authentication endpoint
+    if (url.pathname.includes('/auth/login')) {
+        event.respondWith(fakeLoginResponse(request));
+        logAttacker(request, 'Attempted fake login');
+        return;
+    }
+
+    // Trap: Inject deceptive values for known attack patterns
+    event.respondWith(
+        fetch(request).then((response) => injectDeception(request, response))
+    );
+});
+
+function fakeSensitiveDataResponse() {
+    const fakeKeys = JSON.stringify({
+        apiKey: "FAKE-KEY-123456789",
+        secret: "D3c3pt10nT0k3n"
+    });
+    return new Response(fakeKeys, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
+
+function fakeLoginResponse(request) {
+    return request.json().then((body) => {
+        logAttacker(request, `Login attempt with username: ${body.username}`);
+        return new Response(JSON.stringify({
+            status: "error",
+            message: "Invalid credentials"
+        }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    });
+}
+
+function injectDeception(request, response) {
+    if (!response.ok || !response.headers.get('Content-Type')?.includes('text/html')) {
+        return response;
+    }
+
+    return response.text().then((text) => {
+        let manipulatedText = text;
+
+        if (text.includes('window.apiKey')) {
+            manipulatedText = text.replace(
+                /window\.apiKey\s*=\s*['"](.*?)['"]/g,
+                "window.apiKey = 'FAKE-API-XYZ';"
+            );
+            logAttacker(request, 'Injected deceptive API key');
+        }
+
+        return new Response(manipulatedText, {
+            status: response.status,
+            headers: response.headers
+        });
+    });
+}
+
+function logAttacker(request, action) {
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    ATTACKER_LOG.push({
+        timestamp: new Date().toISOString(),
+        ip,
+        action,
+        url: request.url
+    });
+    console.warn(`[SECURITY TRAP] ${action} from IP: ${ip}`);
+}

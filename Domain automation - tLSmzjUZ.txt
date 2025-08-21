@@ -1,0 +1,112 @@
+#!/bin/bash
+
+# automation.sh (run as ./automation.sh target.com)
+# Enhanced subdomain enumeration script
+
+# === CONFIGURATION ===
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# === CHECK ARGS ===
+
+if [ "$#" -ne 1 ]; then
+    echo -e "${YELLOW}Usage: $0 target.com${NC}"
+    exit 1
+fi
+
+TARGET="$1"
+OUTPUT_DIR="${TARGET}_subdomains"
+mkdir -p "$OUTPUT_DIR"
+
+# === DEPENDENCY CHECK ===
+
+echo -e "${GREEN}[+] Checking dependencies...${NC}"
+
+for cmd in curl jq subfinder sublist3r chaos; do
+    if ! command -v $cmd &>/dev/null; then
+        echo -e "${RED}[!] Missing dependency: $cmd${NC}"
+        exit 1
+    fi
+done
+
+echo -e "${GREEN}[+] All required tools found.${NC}"
+
+# === SET LOGGING ===
+
+LOGFILE="$OUTPUT_DIR/enumeration.log"
+exec > >(tee -a "$LOGFILE") 2>&1
+
+echo -e "${GREEN}[+] Results will be saved in $OUTPUT_DIR${NC}"
+echo -e "${YELLOW}[X] Exporting PDCP_API_KEY...${NC}"
+export PDCP_API_KEY=b235613b-dc7b-43ef-96cf-8c58e8b692b9
+
+# === ENUMERATION START ===
+
+echo -e "${GREEN}[*] Starting enumeration for $TARGET...${NC}"
+
+# --- HackerTarget ---
+echo -e "${GREEN}[*] Hackertarget.com...${NC}"
+curl -s "https://api.hackertarget.com/hostsearch/?q=$TARGET" | cut -d, -f1 | sort -u > "$OUTPUT_DIR/hackertarget.txt"
+[ ! -s "$OUTPUT_DIR/hackertarget.txt" ] && echo -e "${RED}[!] No results from hackertarget.com${NC}"
+
+# --- crt.sh ---
+echo -e "${GREEN}[*] crt.sh...${NC}"
+curl -s "https://crt.sh/?q=%25.$TARGET&output=json" | jq -r '.[] | .name_value' | sed 's/\*\.//g' | sort -u > "$OUTPUT_DIR/crtsh.txt"
+[ ! -s "$OUTPUT_DIR/crtsh.txt" ] && echo -e "${RED}[!] No results from crt.sh${NC}"
+
+# --- rapiddns.io ---
+echo -e "${GREEN}[*] rapiddns.io...${NC}"
+curl -s "https://rapiddns.io/subdomain/$TARGET?full=1#result" | grep -e "<td>.*$TARGET</td>" | grep -oP '(?<=<td>)[^<]+' | sort -u > "$OUTPUT_DIR/rapiddnsio.txt"
+[ ! -s "$OUTPUT_DIR/rapiddnsio.txt" ] && echo -e "${RED}[!] No results from rapiddns.io${NC}"
+
+# --- AlienVault ---
+echo -e "${GREEN}[*] AlienVault OTX...${NC}"
+curl -s "https://otx.alienvault.com/api/v1/indicators/domain/$TARGET/url_list?limit=100&page=1" | grep -o '"hostname": *"[^"]*' | sed 's/"hostname": "//' | sort -u > "$OUTPUT_DIR/alienvault.txt"
+[ ! -s "$OUTPUT_DIR/alienvault.txt" ] && echo -e "${RED}[!] No results from AlienVault${NC}"
+
+# --- subdomain.center ---
+echo -e "${GREEN}[*] subdomain.center...${NC}"
+curl -s "https://api.subdomain.center/?domain=$TARGET" | jq -r '.[]' | sort -u > "$OUTPUT_DIR/subcenter.txt"
+[ ! -s "$OUTPUT_DIR/subcenter.txt" ] && echo -e "${RED}[!] No results from subdomain.center${NC}"
+
+# --- subfinder ---
+echo -e "${GREEN}[*] Subfinder...${NC}"
+subfinder -d "$TARGET" -t 200 -silent -all -recursive -o "$OUTPUT_DIR/subfinder.txt" &
+PID1=$!
+
+# --- sublist3r ---
+echo -e "${GREEN}[*] Sublist3r...${NC}"
+sublist3r -d "$TARGET" -t 20 -o "$OUTPUT_DIR/sublist3r.txt" &
+PID2=$!
+
+# --- chaos ---
+echo -e "${GREEN}[*] Chaos...${NC}"
+chaos -d "$TARGET" -silent > "$OUTPUT_DIR/chaos.txt" &
+PID3=$!
+
+# Wait for background processes
+wait $PID1 $PID2 $PID3
+
+# === COMBINE RESULTS ===
+
+echo -e "${YELLOW}[+] Combining all results...${NC}"
+cat "$OUTPUT_DIR"/*.txt | sort -u > "$OUTPUT_DIR/all_subdomains.txt"
+
+echo -e "${GREEN}[+] Total unique subdomains: $(wc -l < "$OUTPUT_DIR/all_subdomains.txt")${NC}"
+
+# === OPTIONAL: DNS RESOLUTION ===
+
+if command -v dnsx &>/dev/null; then
+    echo -e "${GREEN}[*] Resolving domains using dnsx...${NC}"
+    dnsx -silent -l "$OUTPUT_DIR/all_subdomains.txt" -o "$OUTPUT_DIR/resolved.txt"
+    echo -e "${GREEN}[+] Resolved subdomains: $(wc -l < "$OUTPUT_DIR/resolved.txt")${NC}"
+else
+    echo -e "${YELLOW}[!] dnsx not installed — skipping resolution step.${NC}"
+fi
+
+# === DONE ===
+
+echo -e "${GREEN}[✓] Subdomain enumeration completed. Results saved in $OUTPUT_DIR${NC}"

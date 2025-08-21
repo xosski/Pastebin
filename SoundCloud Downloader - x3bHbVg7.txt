@@ -1,0 +1,14 @@
+import os
+import yt_dlp
+
+# Make sure the "downloads" folder exists
+os.makedirs("downloads", exist_ok=True)
+
+url = "SoundCloud URL Here"
+opts = {
+    'format': 'bestaudio',
+    'outtmpl': r"downloads/%(title)s.%(ext)s",
+}
+
+with yt_dlp.YoutubeDL(opts) as ydl:
+    ydl.download([url])

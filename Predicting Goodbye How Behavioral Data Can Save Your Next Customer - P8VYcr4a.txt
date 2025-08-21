@@ -1,0 +1,20 @@
+https://drive.google.com/drive/folders/1x_hi-cqsSpvFjFYXp53TW-jwcADqmgel?usp=drive_link
+from predict_churn_api import predict_churn
+
+sample_input = {
+    'age': 35,
+    'gender': 'Male',
+    'income': 55000,
+    'purchase_count': 12,
+    'avg_purchase_value': 80,
+    'last_purchase_days_ago': 40,
+    'website_visits_per_month': 25,
+    'support_tickets_last_6m': 1,
+    'email_click_rate': 0.4,
+    'avg_hover_time_per_page': 45,
+    'product_views_per_session': 10,
+    'similar_item_ratio': 0.9
+}
+
+result = predict_churn(sample_input)
+print(result)

@@ -1,0 +1,72 @@
+#!/bin/bash
+
+MAILDIR="$HOME/Maildir"
+JSON_OUTPUT="$HOME/URL4RM.json"
+CSV_OUTPUT="$HOME/URL4RM.csv"
+TMP_FILE="$(mktemp)"
+
+# Patterns to match (customize as needed)
+PATTERNS=("escapechan" "tor2web" "i2p" "onion" "darkweb" "dread")
+
+# Ensure tmp is empty
+> "$TMP_FILE"
+
+# Check dependencies
+if ! command -v urlscan &>/dev/null; then
+    echo "Error: urlscan not found. Please install it."
+    exit 1
+fi
+
+# Escape JSON special chars
+escape_json() {
+    echo "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+# Process all mail files
+find "$MAILDIR" -type f | while read -r email_file; do
+    timestamp=$(stat -c %y "$email_file" | cut -d'.' -f1)
+    urlscan -n < "$email_file" 2>/dev/null | while read -r url; do
+        clean_url=$(echo "$url" | sed 's/["><=]*$//')
+
+        # Skip anything that looks like an email address
+        if [[ "$clean_url" =~ [[:alnum:]\._%+-]+@[[:alnum:]\.-]+\.[[:alpha:]]{2,} ]]; then
+            continue
+        fi
+
+        # Match against patterns
+        for pattern in "${PATTERNS[@]}"; do
+            if [[ "$clean_url" == *"$pattern"* ]]; then
+                echo -e "$timestamp\t$email_file\t$clean_url\t$pattern" >> "$TMP_FILE"
+                break
+            fi
+        done
+    done
+done
+
+# Deduplicate based on URL
+awk -F'\t' '!seen[$3]++' "$TMP_FILE" > "${TMP_FILE}_dedup"
+
+# CSV output
+echo "timestamp,email_file,url,pattern" > "$CSV_OUTPUT"
+awk -F'\t' '{print "\"" $1 "\",\"" $2 "\",\"" $3 "\",\"" $4 "\""}' "${TMP_FILE}_dedup" >> "$CSV_OUTPUT"
+
+# JSON output
+echo "[" > "$JSON_OUTPUT"
+awk -F'\t' '
+    BEGIN { first = 1 }
+    {
+        if (!first) { print "," } else { first = 0 }
+        printf "  {\n"
+        printf "    \"timestamp\": \"%s\",\n", $1
+        printf "    \"email_file\": \"%s\",\n", $2
+        printf "    \"url\": \"%s\",\n", $3
+        printf "    \"pattern\": \"%s\"\n", $4
+        printf "  }"
+    }
+END { print "\n]" }
+' "${TMP_FILE}_dedup" >> "$JSON_OUTPUT"
+
+rm "$TMP_FILE" "${TMP_FILE}_dedup"
+
+echo "✅ CSV written to: $CSV_OUTPUT"
+echo "✅ JSON written to: $JSON_OUTPUT"

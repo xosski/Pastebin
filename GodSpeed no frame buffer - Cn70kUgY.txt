@@ -1,0 +1,93 @@
+window.setTimeout = function(fn, delay, ...args) {
+  return setTimeout(fn, 0, ...args);
+};
+
+window.requestIdleCallback = function(fn) {
+  return fn({ didTimeout: false, timeRemaining: () => 50 });
+};
+
+🔴 Implications:
+1. Bypassing Delayed Execution
+Many scripts use setTimeout or requestIdleCallback to:
+
+Defer heavy computation
+
+Load analytics lazily
+
+Delay bot detection routines
+
+Time-based anti-debugging techniques
+
+Red team move:
+By neutering setTimeout and requestIdleCallback, you:
+
+Force all deferred logic to execute immediately
+
+Kill off scripts that rely on idle time
+
+Short-circuit bot-detection delays, revealing traps early
+
+2. Neutralizing Sandboxing Traps
+Malicious or defensive pages sometimes use setTimeout to:
+
+Delay malicious behavior (so it’s missed by automated scanners)
+
+Delay environmental checks
+
+Stagger payload execution across call stacks
+
+Red team advantage:
+Forcing zero delay can:
+
+Flush payloads instantly
+
+Expose script layering
+
+Allow hooking and logging before obfuscation can kick in
+
+3. Reconnaissance Automation
+If you’re writing a browser agent or doing DOM/script recon:
+
+Force all deferred UI logic to fire at once
+
+Skip spinner animations / dynamic delays
+
+Avoid unnecessary async behavior slowing down your inspection
+
+Basically: rip the timing behavior out of the browser, and now you’re dealing with a flat, static execution timeline.
+
+4. Evading Time-Based Anti-Automation
+Some anti-bot scripts check how long between clicks/mouse moves:
+
+Did this load "too fast"?
+
+Did the human spend time reading?
+
+Are events being triggered "too perfectly"?
+
+By forcing timing to 0, you can:
+
+Test the boundaries of these systems
+
+Trigger false positives on purpose
+
+See if timing data is being used to fingerprint your presence
+
+Then you can flip it, simulate realistic delay only where it matters.
+
+⚠️ Caveats (Read Like a Hacker, Think Like a Defender):
+This will break a LOT of normal UI logic on legitimate apps.
+
+If you're running this in a real browser with live session handling, you may trigger errors or flags by speeding things up too much.
+
+A sophisticated system might detect that setTimeout has been redefined (e.g. window.setTimeout.toString() looks off).
+
+Defensive JS might compare native functions via Function.prototype.toString or native code tags.
+
+🛠️ Tactical Usage (Red Team Mode):
+Drop this override as a pre-script before page logic loads
+
+Pair it with proxy-based API traps to log original timing behavior
+
+Combine with a DOM snapshot before and after to compare what’s being hidden vs. revealed
+

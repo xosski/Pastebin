@@ -1,0 +1,1 @@
+Hear me out. What if you made a malware/virus removal tool and used something like linuxPDF to emulate a Linux machine and used that for root/kernel level access? You would need to do a little magic but you could baptize the unclean with ease.

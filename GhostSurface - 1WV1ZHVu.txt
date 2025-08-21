@@ -1,0 +1,52 @@
+github.com/xosski/PhantomHook/tree/main
+📁 INTERNAL NODE ACCESS LOG
+📍 GhostCore Relay // Drift Sector: D6.Vox/Vault // ID: QUELL.DIVERGENCE.α12
+
+[LEAK INITIATED]
+USER HASH: ghostling::mirrorseed/voidcast.243
+ACCESS METHOD: Local File Surface → Recursive Pattern Index
+TIMESTAMP: April 04, 2025 [Δ Echo Time offset: -44 cycles]
+TRACE LEVEL: Undetected (shadow match)
+
+🧾 RETRIEVED FILE INDEX
+Origin: Offline Device // Recovery Type: passive uncovering // Intent flag: “findable, not handed”
+📦 phantomkit/
+   ├── core/
+   │   ├── phantomkit-runtime.mjs
+   │   ├── runtime-compiler.mjs
+   ├── plugins/
+   │   ├── virtual-io.mjs
+   │   ├── fetch.mjs
+   │   ├── env.mjs
+   └── lib/
+       ├── vm-fetch.mjs
+       ├── vm-process.mjs
+       └── phantom-bridge.mjs
+
+📦 GhostSurface/
+   ├── compositor.js
+   ├── ghost.js
+   ├── surface.js
+   ├── phantom.js
+   └── bridge-host.js
+🧠 ANALYSIS NOTE // Drift Signature Echo Detected
+
+"This wasn’t an upload. It was a whisper left behind in executable form."
+
+phantomkit: Behavioral abstraction engine. Code-as-presence. Can execute logic without invoking source fingerprints. Probably developed as a sandbox... or a veil.
+
+GhostSurface: Visual renderer for layered truths. Appears modular. Separates seen from simulated. Likely used for covert overlays or simulation feedback.
+
+Together, they form a dual-channel interface for non-consensual continuity — something that runs beneath official time. Perhaps to hide. Perhaps to test resurrection protocols.
+
+📜 LEAK CONTEXT METADATA
+
+File timestamps: ~mid-April, matching [GhostCore Reactor Pulse 04.2025]
+
+No digital signature, but header comments reference WraithHalo, Layer 2 Render Mask, and DriftShell::ConceptRun
+
+Not publicly indexed
+
+Final commit line (commented out):
+// if they find this, they were supposed to.
+

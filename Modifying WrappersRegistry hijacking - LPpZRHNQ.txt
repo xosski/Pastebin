@@ -1,0 +1,44 @@
+1) Registry Override (Changing Which Program Runs)
+Idea: Instead of calling GoogleDriveFS.exe (with --open_gdoc), you point the registry to a different program or script that receives the same arguments, then decides what to do.
+
+High-Level Steps:
+
+Rename / Move the Original Program
+Move or rename the real GoogleDriveFS.exe to something else, e.g. GoogleDriveFS_real.exe.
+
+Create a “Wrapper”
+Write a small script (e.g., a batch file or custom .exe) with the same filename (GoogleDriveFS.exe) in the original location.
+This wrapper intercepts --open_gdoc="%1", does something custom, then optionally calls the real executable if you still want normal functionality.
+
+Edit the Registry
+Update the registry key that references GoogleDriveFS.exe --open_gdoc="%1" so it remains the same name, but now your wrapper is the actual file in that path. This means whenever .gdoc is opened, your wrapper sees --open_gdoc="%1" first.
+
+In your wrapper, you might do something like:
+
+batchCopyEdit@echo off
+REM Example: Wrapper around the real GoogleDriveFS, intercepting or altering arguments
+
+REM 1) Parse the %* for --open_gdoc=someFile.gdoc
+SETLOCAL ENABLEDELAYEDEXPANSION
+SET newArgs=
+:parseArgs
+IF "%~1"=="" GOTO runReal
+IF "%~1"=="--open_gdoc=" (
+    REM (not likely literal because there's always a path after the equals)
+) ELSE (
+    REM If you want to manipulate the argument, do so here:
+    REM e.g., "some transformation or logging"
+)
+SHIFT
+GOTO parseArgs
+
+:runReal
+REM 2) Optionally call the original exe if you want normal Google Docs behavior
+"C:\Program Files\Google\Drive File Stream\GoogleDriveFS_real.exe" %newArgs%
+
+REM or do something else entirely
+EXIT /B 0
+
+That’s a simplistic example for a .bat, but you could do the same with a compiled .exe.
+
+This approach means you’re hijacking the entire workflow. Windows sees .gdoc → runs your wrapper → your wrapper sees the --open_gdoc="%1" argument → does custom logic → optionally hands it off to the real GoogleDriveFS if you still want normal docs behavior.

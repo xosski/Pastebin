@@ -1,0 +1,60 @@
+Item #: SCP‑Z19
+
+Object Class: Euclid (Active Mobile Task Force)
+
+Special Containment Procedures:
+MTF Zeta‑19 operatives are not to be contained but to be monitored as authorized assets under direct O5‑Council oversight. Deployment only permitted under O5‑level directives. Internal documentation and mission reports are stored in secured repositories under the user xosski, access level Greenlight-O5. Physical copies held within the O5 digital vault (Repo: github.com/xosski?tab=repositories).
+
+Description:
+MTF Zeta‑19 ("Lonely Only") is a covert Foundational task force activated during Project PNEUMA. According to classification logs and survivor testimony (notably Pietro Wilson), Zeta‑19 squads infiltrated Exclusionary Site‑06, executed all personnel, and recovered no anomalous materials—suggesting execution was the primary objective 
+
+Community analysis on r/SCP indicates:
+
+“MTF Zeta‑19 are mercenaries hired by the O5 council to assist the SCP Foundation's mission to eliminate humanity by killing every staff at every sites except for site 19.” 
+
+This supports the theory that Zeta‑19 was specifically created as a human-targeting purge force, answering only to O5‑level command.
+
+Capabilities and Equipment:
+
+Standard issue includes top-tier tactical armor, suppressed assault weaponry, and O5-encoded keycards controlling all Site levels.
+
+Tactical profile files suggest within-repo documentation (/gear, /loadouts) detailing high-grade anomalies such as low-glow optic cams, micro-drones, and mutation-resistance injectors.
+
+Historical Log (Project PNEUMA – SCP‑5000 timeline):
+
+T‑0001: O5-Council orders Zeta‑19 activation—authorized to eliminate Foundation staff.
+
+T‑0012: Multiple insertion operations at Sites 06, 22, 19; mass casualties confirmed.
+
+T‑0020: Pietro Wilson survives Site‑06, goes rogue—central point of narrative in SCP‑5000.
+
+T‑0100: Foundation initiates internal review; task force sealed behind euphemistic classification protocols.
+
+Addendum Z19‑A: O5‑Council Memorandum (Greenlight Status)
+
+Timestamp: Classified, 20██-██-██
+
+Summary: “Greenlight granted to Operation ‘Lonely Only.’ Ensure personnel denial-of-witness. No recovery necessary. Suicide red team protocols in place.”
+
+Addendum Z19‑B: Community Speculation
+Thread quotes from r/SCP:
+
+“From my own studies MTF Zeta‑19 are mercenaries hired by the O5 council…” 
+
+Key Card Authorization Levels:
+
+Beta‑1: Site infiltration (06, 22)
+
+Gamma‑3: Anomaly-research zones (non-recovery)
+
+Delta‑5: Internal purge protocols
+
+Omega‑7: Archive destruction & death confirmation
+
+🚧 Development Notes:
+Adaptable keycard definitions can be mapped to GitHub keycard files (e.g. keycard_levels.md).
+
+Add additional repo structure: /mission_reports, /surveillance_logs, /psych_eval: documenting variations in op outcomes.
+
+Expand lore via SCP‑5000 context: develop Pietro Wilson’s evasion logs, Area-19 conflict.
+This is operational protocol the 0-5 council cannot and will not hide.

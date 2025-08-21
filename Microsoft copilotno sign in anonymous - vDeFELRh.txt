@@ -1,0 +1,4 @@
+Change shellsig to alter api token
+edgeservices.bing.com/edgesvc/chat?udsframed=1&clientscopes=chat%2Cnoheader%2Cmobfull%2Cmoblite%2Cmoblike%2Cudfltcqi&shellsig=bc1f2284-3369-43c5-88e2-9289dfa99950&darkschemeovr=1&FORM=UDSEMI
+Alternative link
+https://edgeservices.bing.com/edgesvc/chat?udsframed=1&form=SHORUN&clientscopes=chat,noheader,udsedgeshop,channelstable,ntpquery,udsdlpconsent,&shellsig=9bca84d5603e46dbbc3c91b920f9fee6b0a3829b&setlang=en-US&lightschemeovr=

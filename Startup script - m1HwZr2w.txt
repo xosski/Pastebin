@@ -1,0 +1,118 @@
+#!/bin/bash
+# Redirect all output (stdout and stderr) to a log file for debugging
+exec > /var/log/startup-script.log 2>&1
+
+# Helper logging functions for clarity
+log()    { echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] $*"; }
+log_err(){ echo "$(date '+%Y-%m-%d %H:%M:%S') [ERROR] $*" >&2; }
+
+log "Startup script initiated."
+
+# 1. Install required packages if not present
+log "Checking and installing prerequisites (Python3, curl, Docker, NVIDIA drivers, NVIDIA container toolkit)..."
+apt-get update -y
+
+# Install Python3 if missing
+if ! command -v python3 >/dev/null 2>&1; then
+    log "Python3 not found. Installing Python3..."
+    apt-get install -y python3 || log_err "Failed to install Python3"
+else
+    log "Python3 is already installed."
+fi
+
+# Install curl if missing
+if ! command -v curl >/dev/null 2>&1; then
+    log "curl not found. Installing curl..."
+    apt-get install -y curl || log_err "Failed to install curl"
+else
+    log "curl is already installed."
+fi
+
+# Install NVIDIA GPU driver if not present (using default driver package)
+if ! command -v nvidia-smi >/dev/null 2>&1; then
+    log "NVIDIA GPU driver not detected. Installing NVIDIA driver..."
+    apt-get install -y ubuntu-drivers-common && ubuntu-drivers autoinstall || log_err "Failed to install NVIDIA GPU driver"
+    # Optionally, you could use Google's provided installer script or specific driver version as needed
+else
+    log "NVIDIA GPU driver already installed."
+fi
+
+# Install Docker if not present
+if ! command -v docker >/dev/null 2>&1; then
+    log "Docker not found. Installing Docker..."
+    # Install prerequisites for Docker
+    apt-get install -y apt-transport-https ca-certificates gnupg lsb-release
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    apt-get update -y
+    apt-get install -y docker-ce docker-ce-cli containerd.io || log_err "Failed to install Docker"
+    log "Docker installed."
+else
+    log "Docker is already installed."
+    # Ensure Docker service is running
+    systemctl start docker || true
+fi
+
+# Install NVIDIA Container Toolkit (nvidia-docker2) if not present
+if ! docker info | grep -q "Runtimes: nvidia"; then
+    log "NVIDIA Container Toolkit not found. Installing..."
+    distribution=$(. /etc/os-release; echo $ID$VERSION_ID)
+    curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | apt-key add - 
+    curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | tee /etc/apt/sources.list.d/nvidia-docker.list
+    apt-get update -y
+    apt-get install -y nvidia-container-toolkit || log_err "Failed to install NVIDIA Container Toolkit"
+    # Configure Docker default runtime to use nvidia (if needed) and restart Docker
+    systemctl restart docker
+    log "NVIDIA Container Toolkit installed and Docker restarted."
+else
+    log "NVIDIA Container Toolkit is already installed."
+fi
+
+# 2. Retrieve Docker image name and env vars from metadata
+METADATA_URL="http://metadata.google.internal/computeMetadata/v1/instance/attributes"
+log "Fetching 'docker-image' and environment variables from instance metadata..."
+# Fetch Docker image from metadata (required)
+docker_image=$(curl -fsH "Metadata-Flavor: Google" "$METADATA_URL/docker-image") || {
+    log_err "Metadata 'docker-image' not found! Aborting."; exit 1;
+}
+log "Docker image to run: $docker_image"
+
+# Fetch all env- variables from metadata (if any)
+env_args=""
+# List all attributes and filter env- keys:
+metadata_entries=$(curl -fsH "Metadata-Flavor: Google" "$METADATA_URL/?recursive=true&alt=text") || log_err "Failed to fetch metadata entries"
+# Loop through lines to find env- keys
+while IFS= read -r line; do
+    case "$line" in
+      env-*) 
+        # Split "env-KEY value" into key and value
+        key="${line%% *}"; value="${line#* }"
+        env_name="${key#env-}"
+        env_args+=" -e ${env_name}=${value}"
+        log "Found metadata env var: $env_name=$value"
+        ;;
+    esac
+done <<< "$metadata_entries"
+
+# 3. Pull the Docker image with retry logic (max 4 attempts)
+max_attempts=4; attempt=1
+until docker pull "$docker_image"; do
+    if (( attempt >= max_attempts )); then
+       log_err "Docker image pull failed after $attempt attempts. Exiting."
+       exit 1
+    fi
+    log_err "Docker pull failed (attempt $attempt of $max_attempts). Retrying in 10 seconds..."
+    attempt=$((attempt+1))
+    sleep 10
+done
+log "Successfully pulled Docker image: $docker_image"
+
+# 4. Run the Docker container (with any retrieved env variables) using NVIDIA runtime
+# Use --restart unless-stopped to ensure the container restarts if the VM reboots.
+log "Launching Docker container from image..."
+docker run -d --name app --restart unless-stopped --gpus all $env_args "$docker_image" || {
+    log_err "Failed to start Docker container."; exit 1;
+}
+log "Docker container started successfully."
+
+log "Startup script completed."

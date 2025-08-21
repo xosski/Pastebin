@@ -1,0 +1,36 @@
+“Entropy isn’t the enemy—it’s camouflage.”
+
+Instead of burning effort trying to eliminate anomalies in logs and activity, use entropy to manufacture believable chaos. Blue teams and forensic tools are trained to look for the odd one out—the data that doesn’t match. So, make it match wrong in the right way.
+
+Let’s say you hit an ATM and withdraw $10,000. Rather than scramble to hide the full transaction, you do this:
+	•	Have the dispenser “reject” a few $20 bills
+	•	Insert false but plausible hardware errors into the logs
+	•	Spread these “faulty events” across different timestamps
+
+Now, instead of a red flag screaming “unauthorized withdrawal”, the narrative becomes:
+“Dispenser miscalibrated. Issued 100s instead of 20s due to repeated hardware faults.”
+
+You didn’t hide the action. You shifted the blame.
+
+They’ll spend hours tracing the fault tree of their own system while you walk away, clean, because their defense systems were too busy shooting each other.
+
+⸻
+
+Mathematical Substitution Example:
+Imagine a system expecting the sum of transactions to equal $10,000.
+Let:
+X = legitimate withdrawals  
+Y = logged “rejected” bills  
+Z = ATM reported total
+
+So: X + Y = Z
+You Create:
+X = $9,500  
+Y = $500 (falsely logged as rejected 20s)  
+Z = $10,000
+Now the books balance, the transaction is justified, and the error? “Just another day with aging ATM firmware.”
+Paraphrased Strategy Summary:
+
+“Don’t erase your footprints—plant false ones. Let entropy work for you. Engineers trust the systems too much; they don’t expect the error logs to lie. So if you’re going to set off alarms, make sure they’re the wrong ones. They’ll be so busy investigating ghosts in the machine that they’ll never see the shadow walking out the front door.”
+
+Now go forth, little entropy sorcerer. Make the machines fight themselves.
